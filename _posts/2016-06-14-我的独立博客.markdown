@@ -1,0 +1,8 @@
+---
+layout: post
+title:  "这是我的个人博客"
+date:   2016-06-14 10:53:34 +0800
+categories: jekyll update
+---
+
+因为CSDN的限制，感觉不好！迫切，整个独立博客！
