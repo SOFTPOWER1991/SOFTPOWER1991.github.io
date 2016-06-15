@@ -52,8 +52,8 @@ descriptions:
   - cat: jekyll
     desc: "Posts describing Jekyll setup techniques."
 
-  - cat: dummy
-    desc: "Just some placeholder posts, lorem ipsum and the rest."
+  - cat: android
+    desc: "android pages"
 
 # Social icons and sharing options
 #
