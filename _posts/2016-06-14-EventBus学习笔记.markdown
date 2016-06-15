@@ -1,0 +1,222 @@
+---
+layout: post
+title:  "EventBus学习笔记"
+date:   2016-06-14 08:43:59
+author: zhanggeng
+categories: android
+---
+
+	#EventBus学习笔记
+
+对于引入第三方框架总是持一种保守的态度，因此在开发中对于一些跨组件之间的通信，常常采用的方式有：
+
+> 1. 接口回调
+> 2. 广播
+> 3. startActivityOnResult
+
+这些方式同样可以方便的完成组件之间的通信。只是，代码量越来越大，维护起来愈发的艰难：
+
+> 穷则思变
+
+以下是对EventBus的学习记录
+
+	### EventBus 是什么？
+
+EventBus 是一个 Android 事件发布/订阅框架，通过解耦发布者和订阅者简化 Android 事件传递，这里的事件可以理解为消息，本文中统一称为事件。事件传递既可用于 Android 四大组件间通讯，也可以用户异步线程和主线程间通讯等等。
+传统的事件传递方式包括：Handler、BroadCastReceiver、Interface 回调，相比之下 EventBus 的优点是代码简洁，使用简单，并将事件发布和订阅充分解耦。
+
+*EventBus 负责存储订阅者、事件相关信息，订阅者和发布者都只和 EventBus 关联。*
+
+	### 涉及到的概念
+
+*事件（Event）* : 又可称为消息，本文中统一用事件表示。其实就是一个对象，可以是网络请求返回的字符串，也可以是某个开关状态等等。事件类型(EventType)指事件所属的 Class。
+事件分为一般事件和 Sticky 事件，相对于一般事件，Sticky 事件不同之处在于，当事件发布后，再有订阅者开始订阅该类型事件，依然能收到该类型事件最近一个 Sticky 事件。
+
+Sticky事件：当事件发布后，再有订阅者开始订阅该类型事件，依然能收到该类型事件最近一个Sticky 事件。
+
+*事件类型（EventType）* : 指事件所属的 Class。
+
+*订阅者（Subscriber）* : 订阅某种事件类型的对象。当有发布者发布这类事件后，EventBus 会执行订阅者的 onEvent 函数，这个函数叫事件响应函数。订阅者通过 register 接口订阅某个事件类型，unregister 接口退订。
+*订阅者存在优先级，优先级高的订阅者可以取消事件继续向优先级低的订阅者分发，默认所有订阅者优先级都为 0* 。
+
+*发布者（Publisher）* ： 发布某事件的对象，通过 post 接口发布事件。
+
+*事件响应函数（onEvent）* ： onEvent函数
+
+
+
+
+	### 事件响应流程
+
+1. 订阅者首先调用 EventBus 的 register 接口订阅某种类型的事件
+2. 发布者通过post 接口发布该类型的事件。
+3. EventBus执行调用者的事件响应函数。
+
+	### EventBus.java
+
+1. EventBus 默认可通过静态函数 getDefault 获取单例，当然有需要也可以通过 EventBusBuilder 或 构造函数新建一个 EventBus，每个新建的 EventBus 发布和订阅事件都是相互隔离的，即一个 EventBus 对象中的发布者发布事件，另一个 EventBus 对象中的订阅者不会收到该订阅。
+2. EventBus 中对外 API :  register 和 unregister ,分别表示订阅事件和取消订阅。register 最底层函数有三个参数，分别为订阅者对象、是否是 Sticky 事件、优先级。
+```
+private synchronized void register(Object subscriber)
+```
+
+```
+ EventBus.getDefault().unregister(this);
+```
+
+3. subscribe： subscribe 函数分三步
+第一步：通过subscriptionsByEventType得到该事件类型所有订阅者信息队列，根据优先级将当前订阅者信息插入到订阅者队列subscriptionsByEventType中；
+第二步：在typesBySubscriber中得到当前订阅者订阅的所有事件队列，将此事件保存到队列typesBySubscriber中，用于后续取消订阅；
+第三步：检查这个事件是否是 Sticky 事件，如果是则从stickyEvents事件保存队列中取出该事件类型最后一个事件发送给当前订阅者。
+
+4. post：post 函数用于发布事件
+
+```
+EventBus.getDefault().post(new FirstEvent("my first event bus demo"));
+```
+
+```
+    /** Posts the given event to the event bus. */
+    public void post(Object event) {
+        PostingThreadState postingState = currentPostingThreadState.get();
+        List<Object> eventQueue = postingState.eventQueue;
+        eventQueue.add(event);
+
+        if (!postingState.isPosting) {
+            postingState.isMainThread = Looper.getMainLooper() == Looper.myLooper();
+            postingState.isPosting = true;
+            if (postingState.canceled) {
+                throw new EventBusException("Internal error. Abort state was not reset");
+            }
+            try {
+                while (!eventQueue.isEmpty()) {
+                    postSingleEvent(eventQueue.remove(0), postingState);
+                }
+            } finally {
+                postingState.isPosting = false;
+                postingState.isMainThread = false;
+            }
+        }
+    }
+
+```
+
+> 1. post 函数会首先得到当前线程的 post 信息PostingThreadState，其中包含事件队列，将当前事件添加到其事件队列中，然后循环调用 postSingleEvent 函数发布队列中的每个事件。
+> 2. postSingleEvent 函数会先去eventTypesCache得到该事件对应类型的的父类及接口类型，没有缓存则查找并插入缓存。循环得到的每个类型和接口，调用 postSingleEventForEventType 函数发布每个事件到每个订阅者。
+
+> 3. postSingleEventForEventType 函数在subscriptionsByEventType查找该事件订阅者订阅者队列，调用 postToSubscription 函数向每个订阅者发布事件。
+
+> 4. postToSubscription 函数中会判断订阅者的 ThreadMode，从而决定在什么 Mode 下执行事件响应函数。
+
+### ThreadMode
+
+> 1. *POSTING* :默认的 ThreadMode，表示在执行 Post 操作的线程直接调用订阅者的事件响应方法，不论该线程是否为主线程（UI 线程）。当该线程为主线程时，响应方法中不能有耗时操作，否则有卡主线程的风险。适用场景：对于是否在主线程执行无要求，但若 Post 线程为主线程，不能耗时的操作；
+> 2. *MAIN* : 在主线程中执行响应方法。如果发布线程就是主线程，则直接调用订阅者的事件响应方法，否则通过主线程的 Handler 发送消息在主线程中处理——调用订阅者的事件响应函数。显然，MainThread类的方法也不能有耗时操作，以避免卡主线程。适用场景：必须在主线程执行的操作；
+> 3. *BACKGROUND* : 在后台线程中执行响应方法。如果发布线程不是主线程，则直接调用订阅者的事件响应函数，否则启动唯一的后台线程去处理。由于后台线程是唯一的，当事件超过一个的时候，它们会被放在队列中依次执行，因此该类响应方法虽然没有PostThread类和MainThread类方法对性能敏感，但最好不要有重度耗时的操作或太频繁的轻度耗时操作，以造成其他操作等待。适用场景：操作轻微耗时且不会过于频繁，即一般的耗时操作都可以放在这里；
+> 4. *ASYNC* : 不论发布线程是否为主线程，都使用一个空闲线程来处理。和BackgroundThread不同的是，Async类的所有线程是相互独立的，因此不会出现卡线程的问题。适用场景：长耗时操作，例如网络访问。
+
+	###使用方式：
+
+* 创建事件
+
+```
+public class FirstEvent {
+
+    private String message;
+
+    public FirstEvent(String message) {
+        this.message = message;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+}
+```
+
+* 在需要接收事件的页面注册 和 解除注册
+
+以activity为例，注册 EventBus
+
+```
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        //以activity为例 注册EventBus
+        EventBus.getDefault().register(this);
+    }
+
+```
+
+以activity为例，解除注册 EventBus
+
+```
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+       if (EventBus.getDefault().isRegistered(this)){
+            EventBus.getDefault().unregister(this);
+        }
+    }
+```
+
+* 发送消息
+
+```
+        EventBus.getDefault().post(new FirstEvent("my first event bus demo"));
+```
+
+* 接收消息的页面实现
+
+需要借助注解来完成消息的处理
+
+```
+ @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMaintest(FirstEvent firstEvent){
+        tv_one.setText(firstEvent.getMessage());
+        L.et(TAG , firstEvent.getMessage());
+    }
+
+    @Subscribe(threadMode = ThreadMode.POSTING)
+    public void onPostingTest(FirstEvent firstEvent){
+        L.et(TAG , firstEvent.getMessage());
+    }
+
+    @Subscribe(threadMode = ThreadMode.ASYNC)
+    public void onAsyncTest(FirstEvent firstEvent){
+        L.et(TAG , firstEvent.getMessage());
+    }
+
+    @Subscribe(threadMode = ThreadMode.BACKGROUND)
+    public void onBackgroundTest(FirstEvent firstEvent){
+        L.et(TAG , firstEvent.getMessage());
+    }
+```
+
+
+注意事项：
+
+> 1. EventBus 3.0 register(xxx)接收的参数有变化；
+> 2. 对事件的处理借助注解来标识 线程模型；
+> 3. 可以自定义事件处理函数名；
+
+参考文章：
+
+> 1. [EventBus 源码解析](http://www.codekk.com/blogs/detail/54cfab086c4761e5001b2538)
+> 2. [EventBus 源码地址](https://github.com/greenrobot/EventBus)
+
+非常感谢codekk这个网站，让我学到了很多东西。
+
+1. 这篇是在读[codekk](http://a.codekk.com/) 上 [EventBus 源码解析](http://www.codekk.com/blogs/detail/54cfab086c4761e5001b2538)读这篇文章时做的一些笔记。
+2. 这篇文章配合github上的源码一起读，很清晰；
+3. 在实际操练的时候，发现当时分析的版本和现在的版本一些方法有出入，同时对不同的地方进行了标注，见上文*注意事项*
+
+
+
+
+
