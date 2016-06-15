@@ -22,6 +22,8 @@ description: >
 cover: "/assets/header_image.jpg"
 logo: "/assets/logo.png"
 
+timezone: Europe/Amsterdam
+
 # Build settings
 markdown: kramdown
 paginate: 5
