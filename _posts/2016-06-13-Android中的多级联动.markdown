@@ -1,0 +1,38 @@
+---
+layout: post
+title:  "Android中的多级联动"
+date:   2016-06-12 08:43:59
+author: zhanggeng
+categories: android
+---
+
+ # Android中的多级联动
+
+在很久以前，我刚工作的时候也碰到过这样一个需求，那时要做一个环境监测系统的客户端，需求是这样的：
+
+> 1. 有不同的实验室；
+> 2. 每个实验室有不同的光照、湿度、温度监测器；
+> 3. 每选择一个实验室后，将这个实验室对应的光照、温度、湿度都展示出来。
+
+当时我的实现方式是：
+
+在Activity上放两个Spinner，先把实验室数据从服务器拿下来展示出来，当每选择一个实验室后再从服务器拿下这个实验室对应的光照、温度、湿度展示出来。这块想谈的是数据的展示方式，当时用的Spinner，非常丑。最近又碰到一个同样的需求，感觉不寒而栗，当时怎么就不好好想想有没有更好的实现方式呢？
+
+
+其实，有更好、更优美的方式来实现，我找到了WheelView和PickerView 这两个开源项目，可以完美的解决当时的问题：
+
+1、[Android-PickerView](https://github.com/SOFTPOWER1991/Android-PickerView)
+
+2、[WheelView](https://github.com/SOFTPOWER1991/WheelView)
+
+相关博客：
+
+1、[Android 省市县 三级联动（android-wheel的使用）](http://blog.csdn.net/lmj623565791/article/details/23382805)
+
+非常感谢，他们能把如此优秀的代码共享出来——我用的是PickerView 来解决了自己的问题。
+
+
+
+
+
+
