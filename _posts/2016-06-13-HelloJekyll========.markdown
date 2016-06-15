@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Dummy Post 3========"
-date:   2016-06-13 08:43:59
+title:  "Test jekyll ========"
+date:   2016-06-12 08:43:59
 author: zhanggeng
 categories: Dummy
 ---
