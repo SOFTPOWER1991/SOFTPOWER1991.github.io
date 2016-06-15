@@ -6,7 +6,7 @@ author: zhanggeng
 categories: android
 ---
 
- # Android中的多级联动
+# Android中的多级联动
 
 在很久以前，我刚工作的时候也碰到过这样一个需求，那时要做一个环境监测系统的客户端，需求是这样的：
 
