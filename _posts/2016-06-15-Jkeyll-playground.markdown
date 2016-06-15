@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "jekyll playgound"
-date:   2016-06015 14:18:39
+date:   2016-06-15 14:18:39
 author: zhanggeng
 categories: Dummy
 ---
