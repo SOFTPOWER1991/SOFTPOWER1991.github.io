@@ -1,12 +1,12 @@
 ---
 layout: post
-title:  "EventBus学习笔记"
+title:  "EventBus3学习笔记"
 date:   2016-06-14 08:43:59
 author: zhanggeng
 categories: android
 ---
 
-# EventBus学习笔记
+# EventBus3学习笔记
 
 对于引入第三方框架总是持一种保守的态度，因此在开发中对于一些跨组件之间的通信，常常采用的方式有：
 
