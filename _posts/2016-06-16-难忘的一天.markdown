@@ -1,4 +1,3 @@
-
 ---
 layout: post
 title:  "6月17日是一个难忘的日子"
@@ -7,7 +6,6 @@ author: zhanggeng
 categories: android
 ---
 
-# 6月17日是一个难忘的日子
 
 2014年6月17日，对我来说，是一个难忘的日子！
 
