@@ -4,7 +4,7 @@ layout: post
 title:  "6月17日是一个难忘的日子"
 date:   2016-06-16 08:43:59
 author: zhanggeng
-categories: 小心思
+categories: android
 ---
 
 # 6月17日是一个难忘的日子
