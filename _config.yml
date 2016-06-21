@@ -55,6 +55,9 @@ descriptions:
   - cat: android
     desc: "android pages"
 
+  - cat: JavaScript
+    desc: "开启JS之路"
+
 # Social icons and sharing options
 #
 # Social settings are used in two places:
