@@ -1,0 +1,341 @@
+---
+layout: post
+title:  "使用Dagger2进行依赖注入"
+date:   2016-06-20 14:06:59
+author: zhanggeng
+categories: Android
+---
+
+*Notice: 该文章翻译自[Dependency Injection with Dagger 2](https://github.com/codepath/android_guides/wiki/Dependency-Injection-with-Dagger-2)。我在读原文的时候，如果不好好翻译出来，就没耐心好好读下去！因能力有限，难免会出现各种问题，如果您觉着翻译的不正确，请移步原文查看！*
+
+# 概述
+
+许多Android App初始化对象的时候经常需要依赖其他对象。比如，一个Twitter客户端的API可能需要使用像Retrofit之类的网络库。为了使用这个库，你可能也需要添加像Gsony之类的解析库。除此之外，实现登录认证或者缓存的类可能需要获取shared preferences或者其他的存储方式，因此你需要实例化他们并创建一个他们的依赖链。
+
+Dagger2帮你分析这些依赖同时生成代码并将他们串联在一起。虽然已经有很多的Java依赖注入的框架了，但是他们有很多限制比如：需要依赖XML的配置，需要在运行时验证依赖的正确性，或者在启动时可能对性能造成影响。Dagger2完全使用Java的注解器和编译时进行检查分析并验证依赖。目前为止他是工人的非常高效的依赖注入框架。
+
+# 优点
+
+* *简化获取分享实例*  就如同ButterKnife库一样简化了定义View的引用，事件处理，和资源，Dagger2提供了一种简单的方式来获取共享实例。比如，一旦我们用Dagger定义了我们的单例对象，比如MyTwitterApiClient 或者 SharedPreferences，我们只需要用@Inject注解声明这些字段就可以了：
+	
+  ```
+  public class MainActivity extends Activity {
+   @Inject MyTwitterApiClient mTwitterApiClient;
+   @Inject SharedPreferences sharedPreferences;
+
+   public void onCreate(Bundle savedInstance) {
+       // assign singleton instances to fields
+       InjectorClass.inject(this);
+   } 
+  ```
+
+* *对于复杂的依赖配置起来非常容易* 在你经常创建的对象之间有一个隐式的顺序。Dagger2 walks through the dependency graph 同时生成代码，它非常用任意理解和追踪，然而也帮助你节省经常需要手动编写的大量的模板代码，来获取引用并传递他们给其它对象来作为依赖。他也帮你简化重构，因此你可以将注意力集中在你应该创建什么modules而不是应该按照什么样的顺序来创建他们。
+
+* *非常容易的进行单元和集成测试* 因为依赖图是为我们创建的，我们可以非常容易的替换网络响应的modules来模拟出这些表现。
+* *Scoped 实例*   你不仅可以轻松的管理实例让他们在应用的整个生命周期都存在，你也可以用Dagger2 来定义一个生命周期很短的实例（比如绑定到用户Session，activity生命周期等等操作）。
+
+# 设置
+
+Android Studio by default will not recognize a lot of generated Dagger 2 code as legitimate classes, but adding the android-apt plugin will add these files into the IDE class path and enable you to have more visibility. Add this line to your root build.gradle:
+
+Android Studio默认情况下不会识别Dagger2 生成的代码，但是添加了android-apt插件后将会添加这些文件到IDE的类路径同时可以让你看到这些代码。在你的工程的build.gradle文件中添加下面这行：
+
+```
+dependencies {
+     // other classpath definitions here
+     classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
+ }
+```
+
+接着确认在你的App的build.gradle中应用了这个插件：
+
+```
+// add after applying plugin: 'com.android.application'  
+apply plugin: 'com.neenbedankt.android-apt'
+```
+
+在添加完上面的代码后，在app的build.gradle中添加如下三行代码：
+
+```
+dependencies {
+    // apt command comes from the android-apt plugin
+    apt 'com.google.dagger:dagger-compiler:2.2'
+    compile 'com.google.dagger:dagger:2.2'
+    provided 'javax.annotation:jsr250-api:1.0'
+}
+```
+
+注意`provided`关键字提供的依赖仅仅在编译时需要。Dagger编译器生成代码为你在源码中定义来的类，他们用来创建依赖图表。这些类在编译时期被添加进IDE的路径。`apt`关键字，用来提供android-apt插件，不要讲这些类添加到class path ，他们只被用在注解进程中，which prevents accidentally referencing them.
+
+# 创建单例对象
+
+![]()
+
+这个简单的例子告诉你如何用Dagger2集中创建你的所有的单例对象。假设你还没有在你的Twitter客户端中使用任何依赖注入框架，那么代码就会跟下面一样：
+
+```
+OkHttpClient client = new OkHttpClient();
+
+// Enable caching for OkHttp
+int cacheSize = 10 * 1024 * 1024; // 10 MiB
+Cache cache = new Cache(getApplication().getCacheDir(), cacheSize);
+client.setCache(cache);
+
+// Used for caching authentication tokens
+SharedPreferences sharedPrefeences = PreferenceManager.getDefaultSharedPreferences(this);
+
+// Instantiate Gson
+Gson gson = new GsonBuilder().create();
+GsonConverterFactory converterFactory = GsonConverterFactory.create(Gson);
+
+// Build Retrofit
+Retrofit retrofit = new Retrofit.Builder()
+                                .baseUrl("https://api.github.com")
+                                .addConverterFactory(converterFactory)
+                                .client(client)  // custom client
+                                .build();
+```
+
+# 声明你的单例
+
+创建一个Dagger2 module并在其中定义你需要提供的依赖对象。例如，如果你想创建一个Retrofit 实例并和application生命周期进行绑定让他可以被我们所有的activity和fragment使用，我们首先必须让Dagger意识到Retrofit可以被提供。
+
+因为我们期望设置缓存，我们需要一个Application context。我们的第一个Dagger module , AppModule.java，将会提供这个引用。我们将用@Provides提供一个方法注解，它告诉Dagger这个方法是一个构造器它返回Application类型。
+
+```
+@Module
+public class AppModule {
+
+    Application mApplication;
+
+    public AppModule(Application application) {
+        mApplication = application;
+    }
+
+    @Provides
+    @Singleton
+    Application providesApplication() {
+        return mApplication;
+    }
+}
+```
+
+我们创建一个NetModule.java并且用@Module进行注解，这样Dagger就会在该类中查找可能提供的实例。
+
+暴露可用返回值的方法也应该被@Provides 注解进行装饰。单例注解将会告诉Dagger编译器，当前实例只能在application中被创建一次。在下面的例子中，我们将声明一个SharedPreferences，Gson , Cache， OkHttpClient , 和 Retrofit 作为返回类型，它将被作为依赖列表中的一部分来进行使用。
+
+```
+@Module
+public class NetModule {
+
+    String mBaseUrl;
+
+    // Constructor needs one parameter to instantiate.  
+    public NetModule(String baseUrl) {
+        this.mBaseUrl = baseUrl;
+    }
+
+    // Dagger will only look for methods annotated with @Provides
+    @Provides
+    @Singleton
+    // Application reference must come from AppModule.class
+    SharedPreferences providesSharedPreferences(Application application) {
+        return PreferenceManager.getDefaultSharedPreferences(application);
+    }
+
+    @Provides
+    @Singleton
+    Cache provideOkHttpCache(Application application) { 
+        int cacheSize = 10 * 1024 * 1024; // 10 MiB
+        Cache cache = new Cache(application.getCacheDir(), cacheSize);
+        return cache;
+    }
+
+   @Provides 
+   @Singleton
+   Gson provideGson() {  
+       GsonBuilder gsonBuilder = new GsonBuilder();
+       gsonBuilder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
+       return gsonBuilder.create();
+   }
+
+   @Provides
+   @Singleton
+   OkHttpClient provideOkHttpClient(Cache cache) {
+      OkHttpClient client = new OkHttpClient();
+      client.setCache(cache);
+      return client;
+   }
+
+   @Provides
+   @Singleton
+   Retrofit provideRetrofit(Gson gson, OkHttpClient okHttpClient) {
+      Retrofit retrofit = new Retrofit.Builder()
+                .addConverterFactory(GsonConverterFactory.create(gson))
+                .baseUrl(mBaseUrl)
+                .client(okHttpClient)
+                .build();
+        return retrofit;
+    }
+}
+```
+
+注意方法的名字（像provideGson() , provideRetrofit（）等等）是没有什么关系的你可以给他们命名为任何名字。用@Provides标注的返回类型用来和其它modules进行联系。@Singleton注解用来告诉Dagger这个对象在application的整个生命周期中只能被实例化一次。
+
+Retrofit 实例依赖Gson和OkHttpClient两个实例，所以我们可以在同一个类中定义另一个方法它传递这两个类型。@Provides注解和这两个参数将会让Dagger意识到构建Retrofit实例，将会依赖Gson和OkHttpClient。
+
+# 定义注入目标
+
+Dagger provides a way for the fields in your activities, fragments, or services to be assigned references simply by annotating the fields with an @Inject annotation and calling an inject() method. Calling inject() will cause Dagger 2 to locate the singletons in the dependency graph to try to find a matching return type. If it finds one, it assigns the references to the respective fields. For instance, in the example below, it will attempt to find a provider that returns MyTwitterApiClient and a SharedPreferences type:
+
+Dagger提供了一种方法可以将activities,fragments,或者services中的字段和想对应的引用进行绑定，通过@Inject注解和调用inject()方法。调用inject()方法将会使Dagger2在依赖图表里查找一个相匹配的单例然后返回。如果找到了一个，那么就把该实例指定给相对应的字段。例如，在下面的例子中，它尝试着去查找一个提供者他返回MyTwitterApiClient和一个SharedPreferences类型：
+
+```
+public class MainActivity extends Activity {
+   @Inject MyTwitterApiClient mTwitterApiClient;
+   @Inject SharedPreferences sharedPreferences;
+
+  public void onCreate(Bundle savedInstance) {
+       // assign singleton instances to fields
+       InjectorClass.inject(this);
+   } 
+```
+
+Dagger2中的注射器类叫做component。他分配在我们activities,services,或者fragments中的引用来获取我们之前定义的单例对象。我们需要用@Component注释器来注解这个类。注意，activities,services，或者fragments需要用独立的indect()方法添加进来。
+
+```
+@Singleton
+@Component(modules={AppModule.class, NetModule.class})
+public interface NetComponent {
+   void inject(MainActivity activity);
+   // void inject(MyFragment fragment);
+   // void inject(MyService service);
+}
+```
+
+*注意* 基类不能作为注入目标。Dagger2 依赖强类型，所以你必须清晰的定义一个需要注入的子类。
+
+# 代码生成
+
+Dagger2 非常重要的一个方面是该库为用@Component注解的接口生成代码。你可以使用以Dagger为前缀的类他负责生成我们依赖图表中实例同时它还负责为用@Inject注解的字段进行注入。查看设置指南确保你已经引入了@Inject注解。这个插件将会让你更好的理解Dagger2生成的代码。
+
+# 实例化component
+
+我们应该在Application类里完成所有这些工作，因为这些实例在application的整个生命周期中应该只能被声明一次。
+
+```
+public class MyApp extends Application {
+
+    private NetComponent mNetComponent;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        // Dagger%COMPONENT_NAME%
+        mNetComponent = DaggerNetComponent.builder()
+                // list of modules that are part of this component need to be created here too
+                .appModule(new AppModule(this)) // This also corresponds to the name of your module: %component_name%Module
+                .netModule(new NetModule("https://api.github.com"))
+                .build();
+
+        // If a Dagger 2 component does not have any constructor arguments for any of its modules,
+        // then we can use .create() as a shortcut instead:
+        //  mAppComponent = com.codepath.dagger.components.DaggerNetComponent.create();
+    }
+
+    public NetComponent getNetComponent() {
+       return mNetComponent;
+    }
+}
+```
+如果你不能引用Dagger的component确保重新编译这个工程。
+
+因为我们重写了默认的Application类，我们也修改了Application的名字为MyApp。这样的话你的application将会使用这个application类来进行实例化。
+
+```
+<application
+      android:allowBackup="true"
+      android:name=".MyApp">
+```
+
+在我们的activity中，我们只需要获取到这些components然后调用inject()方法即可。
+
+```
+public class MyActivity extends Activity {
+  @Inject OkHttpClient mOkHttpClient;
+  @Inject SharedPreferences sharedPreferences;
+
+  public void onCreate(Bundle savedInstance) {
+        // assign singleton instances to fields
+        // We need to cast to `MyApp` in order to get the right method
+        ((MyApp) getApplication()).getNetComponent().inject(this);
+    } 
+```
+
+# 限定符类型
+
+![]()
+
+如果我们需要同一个返回类型的不同对象，我们可以使用@Named限定符注解。你可以在你提供单例对象（@Provides 注解）的地方和在你注入他们的地方（@Inject注解）
+
+```
+@Provides @Named("cached")
+@Singleton
+OkHttpClient provideOkHttpClient(Cache cache) {
+    OkHttpClient client = new OkHttpClient();
+    client.setCache(cache);
+    return client;
+}
+
+@Provides @Named("non_cached") @Singleton
+OkHttpClient provideOkHttpClient() {
+    OkHttpClient client = new OkHttpClient();
+    return client;
+}
+```
+
+在注入的地方也需要这些限定符：
+
+```
+@Inject @Named("cached") OkHttpClient client;
+@Inject @Named("non_cached") OkHttpClient client2;
+```
+
+@Named是dagger预定义的一个限定符，但是你也可以创建自己的限定符：
+
+```
+@Qualifier
+@Documented
+@Retention(RUNTIME)
+public @interface DefaultPreferences {
+}
+```
+
+# Scopes
+
+![图片]()
+
+Scope注解使Dagger在给定的component中持有提供对象的一个单例。没有被scope声明的Provider方法将会在你每次注入的时候创建一个新的对象。
+
+@Singleton 是Dagger定义的一个scope注解，但是你可以在你的application中定义任意数量的scope注解：
+
+```
+@Scope
+@Documented
+@Retention(value=RUNTIME)
+public @interface MyActivityScope
+```
+
+# Component 依赖
+
+The example above showed that we used singletons that lasted the entire lifecycle of the application. We also relied on one major Dagger component. If we wish to have multiple components that do not need to remain in memory all the time (i.e. components that are tied to the lifecycle of an activity or fragment, or even tied to when a user is signed-in), we can create dependent components. There are several considerations when using dependent components:
+
+Two dependent components cannot share the same scope. For instance, two components cannot both be scoped to a @Singleton annotation. This restriction is imposed because of reasons described here. Dependent components need to define their own scope.
+
+While Dagger 2 also enables the ability to create scoped instances, the responsibility rests on you to create and delete references that are consistent with the intended behavior. Dagger 2 does not know anything about the underlying implementation. See this Stack Overflow discussion for more details.
+
+When creating dependent components, the parent component needs to explicitly expose the objects to downstream objects. For example, if a downstream component needed access to the Retrofit instance, it would need to explicitly expose it with the corresponding return type:
+
+
+

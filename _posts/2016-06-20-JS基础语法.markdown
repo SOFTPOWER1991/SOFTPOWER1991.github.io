@@ -12,32 +12,31 @@ categories: JavaScript
 
 	* JS代码可以嵌在网页的任何地方，通常我们都把JS代码放到<head>中：
 
-	```
-	<html>
-	<head>
-	  <script>
-	    alert('Hello, world');
-	  </script>
-	</head>
-	<body>
-	  ...
-	</body>
-	</html>
-	
-	```
+		```
+				<html>
+				<head>
+				  <script>
+				    ......
+				  </script>
+				</head>
+				<body>
+				  ...
+				</body>
+				</html>
+		```
 
 	* 把JS代码放到一个单独的.js文件中，这样利于维护，并且在多个页面可以各自引用同一份.js文件。
 
-	```
-	<html>
-	<head>
-	  <script src="/static/js/abc.js"></script>
-	</head>
-	<body>
-	  ...
-	</body>
-	</html>
-	```
+		```
+				<html>
+				<head>
+				  <script src="/static/js/abc.js"></script>
+				</head>
+				<body>
+				  ...
+				</body>
+				</html>
+		```
 
 2. 在同一页面中引入多个.js文件后，还可以在页面中多次编写`<script> js代码... </script>`代码，浏览器将会按照顺序依次执行这些JS代码。
 3. `<script>` 标签的type属性，不必显式声明，因为默认的`type`就是JavaScript.
@@ -74,7 +73,6 @@ JS中的数据类型有：Number、字符串、布尔值、null和undefined、�
 	-99; // 负数
 	NaN; // NaN表示Not a Number，当无法计算结果时用NaN表示
 	Infinity; // Infinity表示无限大，当数值超过了JavaScript的Number所能表示的最大值时，就表示为Infinity
-
 	```
 	> 需要注意的是：NaN这个特殊的Number与其他值都不相等，包括它自己。唯一能判断NaN的方法是通过isNaN()函数来判断： isNaN(NaN)。
 	
