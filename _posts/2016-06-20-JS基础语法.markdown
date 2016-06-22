@@ -130,17 +130,17 @@ JS中字符串如何表示:
 
 * *toUpperCase* : 把一个字符串全部变为大写：
 
-	```
-	var s = 'Hello';
-  s.toUpperCase(); // 返回'HELLO'
-	```
+```
+var s = 'Hello';
+s.toUpperCase(); // 返回'HELLO'
+```
 * *toLowerCase* : 把一个字符串全部变为小写：
 	
-	```
-	var s = 'Hello';
-	var lower = s.toLowerCase(); // 返	回'hello'并赋值给变量lower
-	lower; // 'hello'
-	```
+```
+var s = 'Hello';
+var lower = s.toLowerCase(); // 返	回'hello'并赋值给变量lower
+lower; // 'hello'
+```
 * *indexOf* : 会搜索指定字符串出现的位置：
 
 ```
