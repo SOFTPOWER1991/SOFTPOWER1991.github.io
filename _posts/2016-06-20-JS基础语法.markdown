@@ -107,6 +107,55 @@ JS中的数据类型有：Number、字符串、布尔值、null和undefined、�
  
 # 字符串
 
+JS中字符串如何表示:
+
+> 用 '' 或者 ""括起来的字符表示。
+
+如果字符串内部既包含`'`又包含`"`怎么办？
+
+> 用转义字符 `\`进行标识。
+
+怎么让字符串换行？
+
+> 1. 使用 `\n`;
+> 2. ES6标准新增了一种多行字符串的表示方法，用`...`表示：
+
+```
+`这是一个
+多行
+字符串`;
+```
+
+字符串的常见操作：
+
+* *toUpperCase* : 把一个字符串全部变为大写：
+
+	```
+	var s = 'Hello';
+  s.toUpperCase(); // 返回'HELLO'
+	```
+* *toLowerCase* : 把一个字符串全部变为小写：
+	
+	```
+	var s = 'Hello';
+	var lower = s.toLowerCase(); // 返	回'hello'并赋值给变量lower
+	lower; // 'hello'
+	```
+* *indexOf* : 会搜索指定字符串出现的位置：
+
+```
+var s = 'hello, world';
+s.indexOf('world'); // 返回7
+s.indexOf('World'); // 没有找到指定的子串，返回-1
+```
+* *substring* : 返回指定索引区间的子串：
+
+```
+var s = 'hello, world'
+s.substring(0, 5); // 从索引0开始到5（不包括5），返回'hello'
+s.substring(7); // 从索引7开始到结束，返回'world'
+```
+
 # 数组
 
 # 对象
