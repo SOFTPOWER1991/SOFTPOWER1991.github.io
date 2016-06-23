@@ -3,7 +3,7 @@ layout: post
 title:  "使用Dagger2进行依赖注入"
 date:   2016-06-20 14:06:59
 author: zhanggeng
-categories: Android
+categories: android
 ---
 
 *Notice: 该文章翻译自[Dependency Injection with Dagger 2](https://github.com/codepath/android_guides/wiki/Dependency-Injection-with-Dagger-2)。我在读原文的时候，如果不好好翻译出来，就没耐心好好读下去！因能力有限，难免会出现各种问题，如果您觉着翻译的不正确，请移步原文查看！*
