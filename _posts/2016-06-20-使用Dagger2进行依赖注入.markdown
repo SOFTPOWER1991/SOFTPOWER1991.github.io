@@ -36,8 +36,6 @@ Dagger2帮你分析这些依赖同时生成代码并将他们串联在一起。�
 
 # 设置
 
-Android Studio by default will not recognize a lot of generated Dagger 2 code as legitimate classes, but adding the android-apt plugin will add these files into the IDE class path and enable you to have more visibility. Add this line to your root build.gradle:
-
 Android Studio默认情况下不会识别Dagger2 生成的代码，但是添加了android-apt插件后将会添加这些文件到IDE的类路径同时可以让你看到这些代码。在你的工程的build.gradle文件中添加下面这行：
 
 ```
@@ -69,7 +67,7 @@ dependencies {
 
 # 创建单例对象
 
-![]()
+<img src="{{ site.baseurl }}/assets/dagger2/dagger_general.png" title="Profile Picture" class="profile">
 
 这个简单的例子告诉你如何用Dagger2集中创建你的所有的单例对象。假设你还没有在你的Twitter客户端中使用任何依赖注入框架，那么代码就会跟下面一样：
 
@@ -186,8 +184,6 @@ Retrofit 实例依赖Gson和OkHttpClient两个实例，所以我们可以在同�
 
 # 定义注入目标
 
-Dagger provides a way for the fields in your activities, fragments, or services to be assigned references simply by annotating the fields with an @Inject annotation and calling an inject() method. Calling inject() will cause Dagger 2 to locate the singletons in the dependency graph to try to find a matching return type. If it finds one, it assigns the references to the respective fields. For instance, in the example below, it will attempt to find a provider that returns MyTwitterApiClient and a SharedPreferences type:
-
 Dagger提供了一种方法可以将activities,fragments,或者services中的字段和想对应的引用进行绑定，通过@Inject注解和调用inject()方法。调用inject()方法将会使Dagger2在依赖图表里查找一个相匹配的单例然后返回。如果找到了一个，那么就把该实例指定给相对应的字段。例如，在下面的例子中，它尝试着去查找一个提供者他返回MyTwitterApiClient和一个SharedPreferences类型：
 
 ```
@@ -275,7 +271,7 @@ public class MyActivity extends Activity {
 
 # 限定符类型
 
-![]()
+<img src="{{ site.baseurl }}/assets/dagger2/dagger_qualifiers.png" title="Profile Picture" class="profile">
 
 如果我们需要同一个返回类型的不同对象，我们可以使用@Named限定符注解。你可以在你提供单例对象（@Provides 注解）的地方和在你注入他们的地方（@Inject注解）
 
@@ -314,7 +310,7 @@ public @interface DefaultPreferences {
 
 # Scopes
 
-![图片]()
+<img src="{{ site.baseurl }}/assets/dagger2/dagger_scopes.png" title="Profile Picture" class="profile">
 
 Scope注解使Dagger在给定的component中持有提供对象的一个单例。没有被scope声明的Provider方法将会在你每次注入的时候创建一个新的对象。
 
@@ -329,13 +325,152 @@ public @interface MyActivityScope
 
 # Component 依赖
 
-The example above showed that we used singletons that lasted the entire lifecycle of the application. We also relied on one major Dagger component. If we wish to have multiple components that do not need to remain in memory all the time (i.e. components that are tied to the lifecycle of an activity or fragment, or even tied to when a user is signed-in), we can create dependent components. There are several considerations when using dependent components:
+<img src="{{ site.baseurl }}/assets/dagger2/dagger_dependency.png" title="Profile Picture" class="profile">
 
-Two dependent components cannot share the same scope. For instance, two components cannot both be scoped to a @Singleton annotation. This restriction is imposed because of reasons described here. Dependent components need to define their own scope.
+上面的例子展示了我们使用一个单例对象让他在整个application中都持续存在。我们也依赖一个主要的Dagger component。如果我们希望有多个component并且他们不需要一直存在内存中（比如，跟activity或者fragment的声明周期进行绑定的component，或者和用户的登录进行绑定的component）。我们可以创建依赖component。这有几个使用依赖component时的考虑：
 
-While Dagger 2 also enables the ability to create scoped instances, the responsibility rests on you to create and delete references that are consistent with the intended behavior. Dagger 2 does not know anything about the underlying implementation. See this Stack Overflow discussion for more details.
+两个依赖components 不能共享同一个scope。比如，两个components不能都使用@Singleton注解来表示作用域。加入这个限制的原因在[这里](https://github.com/google/dagger/issues/107#issuecomment-71073298)描述了.依赖components需要定义他们自己的scope.
 
-When creating dependent components, the parent component needs to explicitly expose the objects to downstream objects. For example, if a downstream component needed access to the Retrofit instance, it would need to explicitly expose it with the corresponding return type:
+
+虽然Dagger2可以创建scoped实例，你需要负责创建和删除引用。
+
+当创建依赖component时，父component需要明确到暴露对象给子类对象。比如，子component需要获取一个Retrofit实例，它将需要明确到暴露一个相匹配的返回值：
+
+```
+@Singleton
+@Component(modules={AppModule.class, NetModule.class})
+public interface NetComponent {
+    // downstream components need these exposed with the return type
+    // method name does not really matter
+    Retrofit retrofit();
+}
+```
+
+比如，如果我们希望使用依赖component创建用户session当用户登录进application，我们可以定义我们自己的UserScope 接口：
+
+```
+import java.lang.annotation.Retention;
+import javax.inject.Scope;
+
+@Scope
+public @interface UserScope {
+}
+```
+
+接下来我们可以定义一个子component：
+
+```
+@UserScope // using the previously defined scope, note that @Singleton will not work
+@Component(dependencies = NetComponent.class, modules = GitHubModule.class)
+public interface GitHubComponent {
+    void inject(MainActivity activity);
+}
+```
+
+我们假定GitHub module仅仅返回GitHub API中的一个API接口：
+
+```
+@Module
+public class GitHubModule {
+
+    public interface GitHubApiInterface {
+      @GET("/org/{orgName}/repos")
+      Call<ArrayList<Repository>> getRepository(@Path("orgName") String orgName);
+    }
+
+    @Provides
+    @UserScope // needs to be consistent with the component scope
+    public GitHubApiInterface providesGitHubInterface(Retrofit retrofit) {
+        return retrofit.create(GitHubApiInterface.class);
+    }
+}
+```
+
+为了让GitHubModule.java获取Retrofit实例，我们需要清晰的在上流component中定义他们。如果下流module将要执行注入，他们也要从上流component中进行移除：
+
+```
+@Singleton
+@Component(modules={AppModule.class, NetModule.class})
+public interface NetComponent {
+    // remove injection methods if downstream modules will perform injection
+
+    // downstream components need these exposed
+    Retrofit retrofit();
+    OkHttpClient okHttpClient();
+    SharedPreferences sharedPreferences();
+}
+```
+
+最后一步，使用GitHubComponent来完成初始化。这时候，我们首先需要构建NetComponent然后在DaggerGitHubComponent的builder中传入：
+
+```
+NetComponent mNetComponent = DaggerNetComponent.builder()
+                .appModule(new AppModule(this))
+                .netModule(new NetModule("https://api.github.com"))
+                .build();
+
+GitHubComponent gitHubComponent = DaggerGitHubComponent.builder()
+                .netComponent(mNetComponent)
+                .gitHubModule(new GitHubModule())
+                .build();
+```
+
+# Subcomponents
+
+<img src="{{ site.baseurl }}/assets/dagger2/dagger_subcomponent.png" title="Profile Picture" class="profile">
+
+使用Subcomponents 是另一种继承对象图标的component。像有依赖关系的component，subcomponent有他们自己的生命周期并且可以在所有的subcomponent引用消失的时候进行垃圾回收，并且有同样的scope限制。
+
+subcomponent和dependencies之间的主要区别是：
+
+* 需要在父component的接口中进行申明。
+* 可以获得父component图表的所有元素（而不是仅仅在接口中生命的那些）
+
+这有个在activity中使用sub-component的例子：
+
+```
+@Module
+public class MyActivityModule {
+    private final MyActivity activity;
+    public MyActivityModule(MyActivity activity) { this.activity = activity; }
+
+    @Provides @MyActivityScope @Named("my_list")
+    public ArrayAdapter providesMyListAdapter() {
+        return new ArrayAdapter<String>(activity, android.R.layout.my_list);
+    }
+    ...
+}
+
+@MyActivityScope
+@Subcomponent(modules={ MyActivityModule.class })
+public interface MyActivitySubComponent {
+    @Named("my_list") ArrayAdapter myListAdapter();
+}
+
+@Singleton
+@Component(modules={ ... })
+public interface MyApplicationComponent {
+    MyActivitySubComponent newMyActivitySubcomponent(MyActivityModule activityModule);
+}
+```
+
+在上面的例子中，每次newMyActivitySubcomponent()调用的时候，都会产生一个新的subcomponent实例。为了使用该submodule在一个activity中进行注入：
+
+```
+public class MyActivity extends Activity {
+  @Inject ArrayAdapter arrayAdapter;
+
+  public void onCreate(Bundle savedInstance) {
+        // assign singleton instances to fields
+        // We need to cast to `MyApp` in order to get the right method
+        ((MyApp) getApplication()).getApplicationComponent())
+            .newMyActivitySubcomponent(new MyActivityModule(this))
+            .inject(this);
+    } 
+}
+
+```
+
 
 
 
