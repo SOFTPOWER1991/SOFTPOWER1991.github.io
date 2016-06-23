@@ -420,6 +420,19 @@ xiaoming.hasOwnProperty('toString'); // false
 
 # 条件判断
 
+JavaScript使用if () { ... } else { ... }来进行条件判断。
+
+*坑*：如果if的条件判断语句结果不是true或false怎么办？
+
+```
+var s = '123';
+if (s.length) { // 条件计算结果为3
+    //
+}
+```
+
+JS 把null , undefined,0 , NaN 和空字符串'' 视为false,其它值一概为true,因此上述代码条件判断的结果是true。
+
 # 循环
 
 # Map和Set
