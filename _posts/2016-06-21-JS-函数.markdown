@@ -560,4 +560,175 @@ arr.sort(function (x, y) {
 }); // [1, 2, 10, 20]
 ```
 
+# 闭包
+
+1. 闭包是什么？
+2. 我该如何定义一个JS闭包？
+3. 闭包该怎么用呢？
+4. 貌似没看懂这个闭包！
+
+# 箭头函数
+
+ES6新增加的一种函数：Arrow Function（箭头函数）
+
+如何定义一个箭头函数？
+
+第一种形式：只包含一个表达式，连{...}和return都省略掉。
+
+> x => x*x
+
+上面的函数相当于：
+
+```
+function (x) {
+    return x * x;
+}
+```
+
+第二种形式：可以包含多条语句，这时候就不能省略{...} 和 return:
+
+```
+x => {
+    if (x > 0) {
+        return x * x;
+    }
+    else {
+        return - x * x;
+    }
+}
+```
+
+如果参数不止一个，需要用（）括起来：
+
+```
+// 两个参数:
+(x, y) => x * x + y * y
+
+// 无参数:
+() => 3.14
+
+// 可变参数:
+(x, y, ...rest) => {
+    var i, sum = x + y;
+    for (i=0; i<rest.length; i++) {
+        sum += rest[i];
+    }
+    return sum;
+}
+```
+
+如果是返回一个对象，就要注意了，如果是单表达式，这样写会报错：
+
+```
+// SyntaxError:
+x => { foo: x }
+```
+
+因为和函数体的{...}有语法冲突，所以要改为：
+
+```
+// ok:
+x => ({ foo: x })
+```
+
+### this
+
+箭头函数和匿名函数的区别：箭头函数内部的this是词法作用域，由上下文确定。
+
+之前的例子：
+
+```
+var obj = {
+    birth: 1990,
+    getAge: function () {
+        var b = this.birth; // 1990
+        var fn = function () {
+            return new Date().getFullYear() - this.birth; // this指向window或undefined
+        };
+        return fn();
+    }
+};
+```
+
+用箭头函数就可以修复了：箭头函数完全修复了this的指向，this总是指向词法作用域，也就是外层调用者obj:
+
+```
+var obj = {
+    birth: 1990,
+    getAge: function () {
+        var b = this.birth; // 1990
+        var fn = () => new Date().getFullYear() - this.birth; // this指向obj对象
+        return fn();
+    }
+};
+obj.getAge(); // 25
+```
+
+用call()或者apply()调用箭头函数时，无法对this进行绑定，即传入的第一个参数被忽略：
+
+```
+var obj = {
+    birth: 1990,
+    getAge: function (year) {
+        var b = this.birth; // 1990
+        var fn = (y) => y - this.birth; // this.birth仍是1990
+        return fn.call({birth:2000}, year);
+    }
+};
+obj.getAge(2015); // 25
+```
+
+# generator
+
+ES6标准引入的新的数据类型。一个generator看上去像一个函数，但可以返回多次。
+
+如何定义一个generator?
+
+generator和函数不同的是，generator由`function*` 定义，并且，除了return语句，还可以用yield返回多次。
+
+```
+function* foo(x) {
+    yield x + 1;
+    yield x + 2;
+    return x + 3;
+}
+```
+
+如何调用generator?
+
+方法一：
+
+不断的调用generator对象的`next()`方法：
+
+```
+var f = fib(5);
+f.next(); // {value: 0, done: false}
+f.next(); // {value: 1, done: false}
+f.next(); // {value: 1, done: false}
+f.next(); // {value: 2, done: false}
+f.next(); // {value: 3, done: true}
+```
+
+next()方法会执行generator的代码，然后，每次遇到yield x;就返回一个对象，{value: x, done: true/false}，然后“暂停”。返回的value就是yield的返回值，done表示这个generator是否已经执行结束了。如果done为true，则value就是return的返回值。
+
+当执行到done为true时，这个generator对象就已经全部执行完毕，不要再继续调用next()了。
+
+
+方法二：
+
+直接用for .... of 循环迭代generator对象，这种方式不需要自己判断done:
+
+```
+for (var x of fib(5)) {
+    console.log(x); // 依次输出0, 1, 1, 2, 3
+}
+```
+
+
+
+
+
+
+
+
 
