@@ -53,4 +53,100 @@ Notice:
 因此，千万不能忘记写new。为了区分普通函数和构造函数，按照约定，构造函数首字母应当大写，而普通函数首字母应当小写。
 
 
+# 原型继承
+
+Java中继承的本质：扩展一个已有的Class，并生成新的Subclass。
+
+JS采用原型链继承，无法直接扩展一个Class，因为根本不存在Class这种类型。
+
+JS的继承如此麻烦啊。。。。。。无语：
+
+JS的原型继承实现方式就是：
+
+1. 定义新的构造函数，并在内部用call()调用希望‘继承’的构造函数，并绑定this;
+2. 借助中间函数F实现原型链继承，最好通过封装的inherits函数完成；
+3. 继续在新的构造函数的原型上定义新的方法。 
+
+```
+function Student(props) {
+    this.name = props.name || 'Unnamed';
+}
+
+Student.prototype.hello = function () {
+    alert('Hello, ' + this.name + '!');
+}
+```
+
+```
+function inherits(Child, Parent) {
+    var F = function () {};
+    F.prototype = Parent.prototype;
+    Child.prototype = new F();
+    Child.prototype.constructor = Child;
+}
+```
+
+```
+function Student(props) {
+    this.name = props.name || 'Unnamed';
+}
+
+Student.prototype.hello = function () {
+    alert('Hello, ' + this.name + '!');
+}
+
+function PrimaryStudent(props) {
+    Student.call(this, props);
+    this.grade = props.grade || 1;
+}
+
+// 实现原型继承链:
+inherits(PrimaryStudent, Student);
+
+// 绑定其他方法到PrimaryStudent原型:
+PrimaryStudent.prototype.getGrade = function () {
+    return this.grade;
+};
+```
+
+# class 继承
+
+ES6引入的class关键字，让定义类更简单。
+
+ES6中JS定义一个类：
+
+```
+class Student {
+    constructor(name) {
+        this.name = name;
+    }
+
+    hello() {
+        alert('Hello, ' + this.name + '!');
+    }
+}
+```
+
+```
+var xiaoming = new Student('小明');
+xiaoming.hello();
+```
+
+ES6中类的继承：
+
+```
+class PrimaryStudent extends Student {
+    constructor(name, grade) {
+        super(name); // 记得用super调用父类的构造方法!
+        this.grade = grade;
+    }
+
+    myGrade() {
+        alert('I am at grade ' + this.grade);
+    }
+}
+```
+
+这个要原型链那种方式简单很多！
+
 
