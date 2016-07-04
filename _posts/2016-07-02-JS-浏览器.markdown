@@ -121,3 +121,137 @@ history对象保存了浏览器的历史记录，JavaScript可以调用history�
 
 任何情况，你都不应该使用history这个对象了。(好，但是新的解决方案是什么？)
 
+## 操作DOM
+
+HTML文档被解析后是一颗DOM树，要改变HTML结构，就要通过JS来操作DOM树。
+
+操作一个DOM节点实际上就是这么几个动作：
+
+* 更新：更新该DOM节点的内容，相当于更新了该DOM节点表示的HTML的内容；
+* 遍历：遍历该DOM节点下的子节点，以便进行进一步操作；
+* 添加：在该DOM节点下新增一个子节点，相当于动态增加了一个HTML节点；
+* 删除：将该节点从HTML中删除，相当于删掉了该DOM节点的内容以及它包含的所有子节点。
+
+获取某个DOM节点：
+
+```
+document.getElementById();直接定位唯一的一个DOM节点
+document.getElementsByTagName();返回一组DOM节点
+document.getElementsByClassName();返回一组DOM节点
+```
+
+```
+<!-- HTML结构 -->
+<div id="test-div">
+<div class="c-red">
+    <p id="test-p">JavaScript</p>
+    <p>Java</p>
+  </div>
+  <div class="c-red c-green">
+    <p>Python</p>
+    <p>Ruby</p>
+    <p>Swift</p>
+  </div>
+  <div class="c-green">
+    <p>Scheme</p>
+    <p>Haskell</p>
+  </div>
+</div>
+```
+
+```
+// 选择<p>JavaScript</p>:
+var js = document.getElementById('test-p');
+
+// 选择<p>Python</p>,<p>Ruby</p>,<p>Swift</p>:
+var arr = document.getElementsByClassName('c-red c-green')[0].children;
+
+// 选择<p>Haskell</p>:
+var haskell = document.getElementsByClassName('c-green')[1]. lastElementChild;
+```
+
+
+### 更新DOM
+
+拿到一个DOM节点后，我们可以对它进行更新。
+
+方式一：修改`innerHTML`属性，该方法，不但可以修改一个DOM节点的文本内容，还可以直接通过HTML片段修改DOM节点的内部子树：
+
+```
+// 获取<p id="p-id">...</p>
+var p = document.getElementById('p-id');
+// 设置文本为abc:
+p.innerHTML = 'ABC'; // <p id="p-id">ABC</p>
+// 设置HTML:
+p.innerHTML = 'ABC <span style="color:red">RED</span> XYZ';
+// <p>...</p>的内部结构已修改
+```
+
+// 获取<p id="p-id">...</p>
+var p = document.getElementById('p-id');
+// 设置文本为abc:
+p.innerHTML = 'ABC'; // <p id="p-id">ABC</p>
+// 设置HTML:
+p.innerHTML = 'ABC <span style="color:red">RED</span> XYZ';
+// <p>...</p>的内部结构已修改
+
+方式二：修改innerText或textContent属性，这样可以自动对字符串进行HTML编码，保证无法设置任何HTML标签：
+
+```
+// 获取<p id="p-id">...</p>
+var p = document.getElementById('p-id');
+// 设置文本:
+p.innerText = '<script>alert("Hi")</script>';
+// HTML被自动编码，无法设置一个<script>节点:
+// <p id="p-id">&lt;script&gt;alert("Hi")&lt;/script&gt;</p>
+```
+
+innerText和textContent的区别：
+
+* innerText不返回隐藏元素的文本
+* textContent返回所有文本（IE<9不支持textContent）
+
+经常需要修改CSS，DOM节点的style属性对应所有的CSS，可以直接获取或设置。因为CSS允许font-size这样的属性，但是它在JS中不是有效的属性名，所以在JS中需要改写为驼峰式的命名fontSize:
+
+```
+// 获取<p id="p-id">...</p>
+var p = document.getElementById('p-id');
+// 设置CSS:
+p.style.color = '#ff0000';
+p.style.fontSize = '20px';
+p.style.paddingTop = '2em';
+```
+
+
+*practice*
+
+```
+<!-- HTML结构 -->
+<div id="test-div">
+  <p id="test-js">javascript</p>
+  <p>Java</p>
+</div>
+```
+
+尝试获取指定节点并修改：
+
+```
+// 获取<p>javascript</p>节点:
+var js = document.getElementById('test-js');
+
+// 修改文本为JavaScript:
+// TODO:
+js.innerHTML = 'JavaScript';
+
+// 修改CSS为: color: #ff0000, font-weight: bold
+// TODO:
+
+
+js.style.color = '#ff0000';
+js.style.fontWeight = 'bold';
+```
+
+### 插入DOM
+
+### 删除DOM
+
