@@ -331,7 +331,7 @@ s.substring(7); // 从索引7开始到结束，返回'world'
 
 如何定义一个JavaScript对象？
 
-JavaScript用一个{...}表示一个对象，键值对以xxx: xxx形式申明，用,隔开。注意，最后一个键值对不需要在末尾加。JS中的对象是一种无序的集合数据类型，它由若干键值对组成。
+JavaScript用一个{...}表示一个对象，键值对以xxx: xxx形式申明，用`,`隔开。注意，最后一个键值对不需要在末尾加。JS中的对象是一种无序的集合数据类型，它由若干键值对组成。
 
 ```
 var xiaoming = {
@@ -353,7 +353,9 @@ xiaoming.name; // '小明'
 xiaoming.birth; // 1990
 ```
 
-如果访问一个不存在的JS属性会怎样呢？JS规定，访问不存在的属性不报错，而是返回`undefined`：
+如果访问一个不存在的JS属性会怎样呢？JS规定，访问不存在的属性不报错，而是返回
+
+`undefined`：
 
 ```
 var xiaoming = {
@@ -380,7 +382,7 @@ delete xiaoming.school; // 删除一个不存在的school属性也不会报错
 
 如何判断一个对象是否具有某个属性呢？
 
-使用in操作符。
+使用`in`操作符。
 
 ```
 var xiaoming = {
@@ -395,12 +397,12 @@ var xiaoming = {
 'grade' in xiaoming; // false
 ```
 
-*坑*： 如果in判断一个属性存在，这个属性不一定是xiaoming的，它可能是xiaoming继承得到的。
+*坑*： 如果`in`判断一个属性存在，这个属性不一定是`xiaoming`的，它可能是`xiaoming`继承得到的。
 
 ```
 'toString' in xiaoming; // true
 ```
-因为toString定义在object对象中，而所有对象最终都会在原型链上指向object，所以xiaoming也拥有toString属性。
+因为`toString`定义在object对象中，而所有对象最终都会在原型链上指向object，所以xiaoming也拥有toString属性。
 
 那么，如何判断一个属性是否是某个对象自身拥有的，而不是继承得到的？
 
@@ -428,7 +430,7 @@ if (s.length) { // 条件计算结果为3
 }
 ```
 
-JS 把null , undefined,0 , NaN 和空字符串'' 视为false,其它值一概为true,因此上述代码条件判断的结果是true。
+JS 把`null` , `undefined`,`0` , `NaN` 和空字符串'' 视为false,其它值一概为true,因此上述代码条件判断的结果是true。
 
 # 循环
 
@@ -462,7 +464,7 @@ for (var key in o) {
 
 #### while
 
-while循环只有一个判断条件，条件满足，就不断循环，条件不满足时则退出循环。
+`while`循环只有一个判断条件，条件满足，就不断循环，条件不满足时则退出循环。
 
 ```
 var x = 0;
@@ -489,13 +491,13 @@ n; // 100
 
 # Map和Set
 
-Map和Set是ES6标准新增的数据类型，根据浏览器的支持情况决定是否要使用。
+`Map`和`Set`是ES6标准新增的数据类型，根据浏览器的支持情况决定是否要使用。
 
 #### Map
 
-Map是一组键值对的结构，具有极快的查找速度。
+`Map`是一组键值对的结构，具有极快的查找速度。
 
-在JS中初始化Map: 需要一个二维数组，或者直接初始化一个空Map。
+在JS中初始化`Map`: 需要一个二维数组，或者直接初始化一个空Map。
 
 ```
 var m = new Map([['Michael', 95], ['Bob', 75], ['Tracy', 85]]);
