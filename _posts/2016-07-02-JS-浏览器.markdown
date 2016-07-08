@@ -337,6 +337,237 @@ removed === self; // true
 
 当你遍历一个父亲点的子节点进行删除的时候，注意，children属性是一个只读属性，并且它在子节点变化时会实时更新。
 
+## 操作表单
+
+JS用来操作表单，可以获得用户输入的内容，或者对一个输入框设置新的内容。
+
+HTML表单的输入控件主要有以下几种：
+
+* 文本框，对应的<input type="text">，用于输入文本；
+* 口令框，对应的<input type="password">，用于输入口令；
+* 单选框，对应的<input type="radio">，用于选择一项；
+* 复选框，对应的<input type="checkbox">，用于选择多项；
+* 下拉框，对应的<select>，用于选择一项；
+* 隐藏文本，对应的<input type="hidden">，用户不可见，但表单提交时会把隐藏文本发送到服务器。
+
+### 获取值
+
+如果我们获得了一个<input>节点的引用，就可以直接调用value获得对应的用户输入值：
+
+```
+// <input type="text" id="email">
+var input = document.getElementById('email');
+input.value; // '用户输入的值'
+```
+
+可以用这种方式获取：text、password、hidden、select的值。
+
+对于单选框和复选框，value属性返回的是HTML预设的值，而我们需要的是用户‘勾上’的选项，因此要用`checked`来判断：
+
+```
+// <label><input type="radio" name="weekday" id="monday" value="1"> Monday</label>
+// <label><input type="radio" name="weekday" id="tuesday" value="2"> Tuesday</label>
+var mon = document.getElementById('monday');
+var tue = document.getElementById('tuesday');
+mon.value; // '1'
+tue.value; // '2'
+mon.checked; // true或者false
+tue.checked; // true或者false
+```
+
+### 设置值
+
+对于text、password、hidden、selector，直接设置value就可以：
+
+```
+// <input type="text" id="email">
+var input = document.getElementById('email');
+input.value = 'test@example.com'; // 文本框的内容已更新
+```
+
+对于单选框和复选框，设置checked为true或false即可。
+
+### HTML5控件
+
+H5新增了大量标准控件，常用的包括 date、datetime、datetime-local、color等，他们都是用<input>标签：
+
+```
+<input type="date" value="2015-07-01">
+
+<input type="datetime-local" value="2015-07-01T02:03:04">
+
+<input type="color" value="#ff0000">
+```
+
+### 提交表单
+
+JS可以以两种方式来处理表单的提交。
+
+方式一：通过<form>元素的submit()方法提交一个表单，例如，响应一个<button>的click时间，在JS中提交表单：
+
+```
+<!-- HTML -->
+<form id="test-form">
+    <input type="text" name="test">
+    <button type="button" onclick="doSubmitForm()">Submit</button>
+</form>
+
+<script>
+function doSubmitForm() {
+    var form = document.getElementById('test-form');
+    // 可以在此修改form的input...
+    // 提交form:
+    form.submit();
+}
+</script>
+```
+
+## 操作文件
+
+在HTML表单中，可以上传文件的唯一控件是<input type='file'>.
+
+*Notice：*当一个表单包含<input type="file">时，表单的enctype必须指定为multipart/form-data，method必须指定为post，浏览器才能正确编码并以multipart/form-data格式发送表单的数据。
+
+浏览器只允许用户点击<input type='file'>来选择本地文件，用JS对<input type='file'>的value赋值是没有任何效果的。当用户选择了上传某个文件后，JS也无法获得该文件的真实路径。
+
+
+### File API:
+
+H5中，新增的File API允许JS读取文件内容，获得更多的文件信息。
+
+H5的File API提供了File 和 FileReader两个主要对象，可以获得文件信息并读取文件。
+
+### 回调
+
+单线程执行模式是JS的一个重要特性。在JS中，浏览器的JS执行引擎在执行JS代码时，总是以单线程模式执行，也就是说，任何时候，Js代码都不可能同时多于1个线程执行。
+
+单线程模式执行的JS，如何处理多任务？
+
+在JS中，执行多任务实际都是用异步调用，因此需要设置一个回调函数，当文件读取文成后，JS引擎将自动调用我们设置的回调函数。
+
+## AJAX
+
+AJAX是什么？
+
+AJAX不是JS的规范，是一个哥们发明的缩写:Asynchronous JavaScript and XML，意思是用JS执行异步网络请求。
+
+在一个Form表单中，用户点击‘Submit’按钮后，表单开始提交，浏览器就会刷新页面，如果要让用户留在当前页面中，同时发出新的HTTP请求，就必须用JS发送这个新请求，接收到数据后，再用JS更新页面，这样用户就可以感觉到自己停留在当前页面，但是数据却在不断的更新。
+
+
+AJAX是干嘛的？
+
+AJAX就是用JS执行异步网络请求。
+
+
+如何使用AJAX：
+
+在现代浏览器上使用：
+
+```
+function success(text) {
+    var textarea = document.getElementById('test-response-text');
+    textarea.value = text;
+}
+
+function fail(code) {
+    var textarea = document.getElementById('test-response-text');
+    textarea.value = 'Error code: ' + code;
+}
+
+var request = new XMLHttpRequest(); // 新建XMLHttpRequest对象
+
+request.onreadystatechange = function () { // 状态发生变化时，函数被回调
+    if (request.readyState === 4) { // 成功完成
+        // 判断响应结果:
+        if (request.status === 200) {
+            // 成功，通过responseText拿到响应的文本:
+            return success(request.responseText);
+        } else {
+            // 失败，根据响应码判断失败原因:
+            return fail(request.status);
+        }
+    } else {
+        // HTTP请求还在继续...
+    }
+}
+
+// 发送请求:
+request.open('GET', '/api/categories');
+request.send();
+
+alert('请求已发送，请等待响应...');
+
+```
+
+在低版本IE上使用：需要使用ActiveXObject对象：
+
+```
+function success(text) {
+    var textarea = document.getElementById('test-ie-response-text');
+    textarea.value = text;
+}
+
+function fail(code) {
+    var textarea = document.getElementById('test-ie-response-text');
+    textarea.value = 'Error code: ' + code;
+}
+
+var request = new ActiveXObject('Microsoft.XMLHTTP'); // 新建Microsoft.XMLHTTP对象
+
+request.onreadystatechange = function () { // 状态发生变化时，函数被回调
+    if (request.readyState === 4) { // 成功完成
+        // 判断响应结果:
+        if (request.status === 200) {
+            // 成功，通过responseText拿到响应的文本:
+            return success(request.responseText);
+        } else {
+            // 失败，根据响应码判断失败原因:
+            return fail(request.status);
+        }
+    } else {
+        // HTTP请求还在继续...
+    }
+}
+
+// 发送请求:
+request.open('GET', '/api/categories');
+request.send();
+
+alert('请求已发送，请等待响应...');
+
+```
+
+如果想把标准写法和IE写法写在一起，可以这样：
+
+```
+var request;
+if (window.XMLHttpRequest) {
+    request = new XMLHttpRequest();
+} else {
+    request = new ActiveXObject('Microsoft.XMLHTTP');
+}
+
+```
+
+上述代码中：
+
+* 通过window.XMLHttpRequest属性来确定浏览器是否支持标准的XMLHttpRequest。
+* 当创建了XMLHttpRequest对象后，要先这只onreadystatechange的回调函数。在回调函数中，通常我们只需通过readyState === 4判断请求是否完成，如果已完成，再根据status === 200判断是否是一个成功的响应。
+* XMLHttpRequest对象的open()方法有3个参数，第一个参数指定是GET还是POST，第二个参数指定URL地址，第三个参数指定是否使用异步，默认是true，所以不用写。
+* 调用send()方法才真正发送请求。GET请求不需要参数，POST请求需要把body部分以字符串或者FormData对象传进去。 
+
+
+### 安全限制
+
+浏览器同源策略(参考[浏览器同源政策及其规避方法](http://www.ruanyifeng.com/blog/2016/04/same-origin-policy.html))
+
+
+### CORS
+
+[跨域资源共享 CORS 详解](http://www.ruanyifeng.com/blog/2016/04/cors.html)
+
+
+
 
 
 
