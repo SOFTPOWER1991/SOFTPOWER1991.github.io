@@ -516,6 +516,46 @@ H5的File API 提供了File 和FileReader两个主要对象，可以获得文件
 
 执行多任务时进行异步调用，在此之前设置一个回调函数，当异步调用结束后，回调至回调函数，这样我们就可以在回调函数内获取异步任务执行的结果。
 
+### 修改DOM结构
+
+#### 添加DOM
+
+添加新的DOM节点，除了用jQuery的html()，还可以用append()方法。
+
+append()方法，可以传入HTML片段，原始的DOM对象，jQuery对象和函数对象。
+
+```
+ul.append('<li><span>Haskell</span></li>');
+
+// 创建DOM对象:
+var ps = document.createElement('li');
+ps.innerHTML = '<span>Pascal</span>';
+// 添加DOM对象:
+ul.append(ps);
+
+// 添加jQuery对象:
+ul.append($('#scheme'));
+
+// 添加函数对象:
+ul.append(function (index, html) {
+    return '<li><span>Language - ' + index + '</span></li>';
+});
+```
+
+如果要传入函数，那么要求这个函数返回一个字符串、DOM对象或者jQuery对象。
+
+append()把DOM添加到最后，prepend()把DOM添加到最前面。
+
+如果要添加的DOM节点已经存在于HTML文档中，它会先从文档移除，然后再添加，也就是说：append（），你可以移动一个DOM节点。
+
+如要要把新节点插入到指定位置，可以先定位到一个节点，然后用after()方法，同级节点可以用after() 或者 before() 方法。
+
+#### 删除节点
+
+删除DOM节点，拿到jQuery对象后直接调用remove()方法就可以了。如果jQuery对象包含若干DOM节点，可以一次删除多个DOM节点。
+
+
+
 
 
 
