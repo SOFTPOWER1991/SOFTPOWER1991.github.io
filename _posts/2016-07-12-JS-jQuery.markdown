@@ -554,6 +554,78 @@ append()把DOM添加到最后，prepend()把DOM添加到最前面。
 
 删除DOM节点，拿到jQuery对象后直接调用remove()方法就可以了。如果jQuery对象包含若干DOM节点，可以一次删除多个DOM节点。
 
+# 事件
+
+为什么要用jQuery来处理事件？
+
+JS在浏览器中以单线程模式运行，页面加载后，页面上所有的JS代码被执行完成后，就只能依赖触发事件来执行JS代码。如果在相应的节点绑定了对应的JS处理函数，浏览器接收到用户的鼠标或键盘输入后，就会触发相应的事件。
+
+问题来了，不同浏览器绑定事件的代码都不一样，用jQuery来写绑定事件的代码，就可以屏蔽不同浏览器之间的差异。
+
+`on`绑定一个事件，我们需要传入事件名称和对应的处理函数。
+
+jQuery能够绑定的事件主要包括：
+
+*鼠标事件*
+
+click: 鼠标单击时触发；
+dblclick: 鼠标双击时触发；
+mouseenter:鼠标进入时触发； 
+mouseleave: 鼠标移出时触发；
+mousemove: 鼠标在DOM内部移动时触发； 
+hover: 鼠标进入和退出时触发两个函数，相当于mouseenter 加上mouseleave.
+
+*键盘事件*
+
+键盘事件仅作用在当前焦点的DOM上，通常是<input> 和 <textarea>、
+
+keydown: 键盘按下时触发；
+keyup: 键盘松开时触发；
+keypress: 按一次键后触发；
+
+*其他事件*
+
+focus: 当DOM获得焦点时触发；
+blur: 当DOM失去焦点时触发；
+change: 当<input>、<select> 或<textarea>的内容改变时触发； 
+submit : 当<form>提交时触发。 
+ready: 当页面被载入并且DOM树完成初始化后触发。
+
+### 事件参数
+
+对于mousemove 和 keypress这些事件，需要传入Event对象作为参数，但是问题是，
+
+1. 我如何知道，Event有哪些方法，或者属性呢？
+2. 我怎么知道，有哪些事件需要传入参数呢？
+
+
+### 取消绑定
+
+一个已被绑定的事件可以解除绑定，通过off('click' , function)实现：
+
+```
+function hello() {
+    alert('hello!');
+}
+
+a.click(hello); // 绑定事件
+
+// 10秒钟后解除绑定:
+setTimeout(function () {
+    a.off('click', hello);
+}, 10000);
+```
+
+### 事件触发条件
+
+为什么要手动触发一个事件呢？
+
+### 浏览器安全限制
+
+在浏览器中，有些JS代码只有在用户触发下才能执行。
+
+
+
 
 
 
