@@ -624,6 +624,40 @@ setTimeout(function () {
 
 在浏览器中，有些JS代码只有在用户触发下才能执行。
 
+# 动画
+
+js实现动画原理：以固定的时间间隔，每次把DOM元素的CSS样式修改一点，看起来就像是动画了。
+
+jQuery实现动画非常简单：
+
+### show / hide / toggle():左上角逐渐展开或收缩的
+
+以无参数形式调用show()和hide()，会显示和隐藏DOM元素。但是，只要传递一个时间参数进去，就变成了一个动画。
+
+### slideUp /slideDown/slideToggle：垂直方向逐渐展开或收缩的
+
+### fadeIn/fadeOut/fadeToggle: 淡入淡出，不断设置DOM元素的opacity属性来实现。
+
+### 自定义动画
+
+animate(): 可以实现任意动画效果，我们需要传入的参数是DOM元素最终的CSS状态和时间，jQuery在时间段内不断调整CSS直到达到我们设定的值。
+
+```
+var div = $('#test-animate');
+div.animate({
+    opacity: 0.25,
+    width: '256px',
+    height: '256px'
+}, 3000); // 在3秒钟内CSS过渡到设定值
+```
+
+### 串行动画
+
+jQuery的动画效果还可以串行执行，通过delay()方法还可以实现暂停，这样，我们可以实现更复杂的动画效果，因为动画需要执行一段时间，所以jQuery必须不断返回新的Promise对象才能后续执行操作。简单的把动画封装在函数中是不够的。
+
+### 为什么有的动画没有效果
+
+有时候会遇到，有的动画如slideUp()根本没有效果。这是因为jQuery动画的原理是逐渐改变CSS的值，如height从100px逐渐变为0。但是很多不是block性质的DOM元素，对他们设置height根本就不起作用，所以动画也就没有效果。
 
 
 
