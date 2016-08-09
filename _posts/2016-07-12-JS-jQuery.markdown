@@ -675,6 +675,87 @@ jQuery在全局对象jQuery绑定了ajax()函数，可以处理AJAX请求。ajax
 
 
 
+#### get
+
+jQuery提供了常get()方法，来完成相应的AJAX操作：
+
+```
+var jqxhr = $.get('/path/to/resource', {
+    name: 'Bob Lee',
+    check: 1
+});
+```
+
+第二个参数如果是object，jQuery自动把它变为query string 然后加到URL后面，实际的URL是：
+
+```
+/path/to/resource?name=Bob%20Lee&check=1
+```
+
+#### post
+
+post()和get()类似，但是传入的第二个参数默认被序列化为application/x-www-form-urlencoded:
+
+```
+var jqxhr = $.post('/path/to/resource', {
+    name: 'Bob Lee',
+    check: 1
+});
+```
+
+实际构造的数据`name=Bob%20Lee&check=1`作为POST的body被发送。
+
+#### getJSON
+
+jQuery提供了getJSON()方法来快速通过GET获取一个JSON对象：
+
+```
+var jqxhr = $.getJSON('/path/to/resource', {
+    name: 'Bob Lee',
+    check: 1
+}).done(function (data) {
+    // data已经被解析为JSON对象了
+});
+```
+
+#### 安全限制
+
+jQuery的AJAX完全封装的是JS的AJAX操作，所以它的安全限制和前面讲的用JS写AJAX一样。
+
+如果要用JSONP，可以在ajax()中设置jsonp:'callback'，让jQuery实现JSONP跨域加载数据。
+
+
+# 扩展
+
+#### 编写jQuery插件
+
+我们可以扩展jQuery来实现自定义方法。将来如果要修改高亮的逻辑，只需修改一处扩展代码。这种方式成为编写jQuery插件。
+
+*编写jQuery插件*
+
+给jQuery对象绑定一个新方法是通过扩展$.fn对象实现的。编写一个扩展——highlight1():
+
+```
+$.fn.highlight1 = function () {
+    // this已绑定为当前jQuery对象:
+    this.css('backgroundColor', '#fffceb').css('color', '#d85030');
+    return this;
+}
+```
+
+*jQuery插件可以用来扩展jQuery的功能*
+
+编写jQuery插件的原则：
+
+1. 给$.fn绑定函数，实现插件的代码逻辑；
+2. 插件函数最后要return this;以支持链式调用
+3. 插件函数要有默认值，绑定在$.fn.<pluginName>.defaults上；
+4. 用户在调用时可传入设定值以便覆盖默认值。
+
+*针对特定元素的扩展*
+
+借助`filter()`方法来实现针对特定元素的扩展。
+
 
 
 
