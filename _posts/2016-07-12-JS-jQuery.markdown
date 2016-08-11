@@ -758,7 +758,23 @@ $.fn.highlight1 = function () {
 
 
 
+# underscore
 
+underscore提供了一套完善的函数式编程接口，使我们更方便地在JS中实现函数式编程。
+
+jQuery加载时，会把自身绑定到唯一的全局变量$上，underscore与其类似，会把自身绑定到唯一的全局变量 _ 上，这也是叫它underscore的原因。
+
+```
+'use strict';
+_.map([1, 2, 3], (x) => x * x); // [1, 4, 9]
+```
+
+underscore的map()可以作用于Object:
+
+```
+'use strict';
+_.map({ a: 1, b: 2, c: 3 }, (v, k) => k + '=' + v); // ['a=1', 'b=2', 'c=3']
+```
 
 
 
