@@ -857,7 +857,148 @@ _.sample([1, 2, 3, 4, 5, 6]); // 2
 _.sample([1, 2, 3, 4, 5, 6], 3); // [6, 1, 4]
 ```
 
+## Arrays
 
+underscore 为Array提供了许多工具类方法：
+
+### first/last
+
+分别取第一个和最后一个元素：
+
+```
+'use strict';
+var arr = [2, 4, 6, 8];
+_.first(arr); // 2
+_.last(arr); // 8
+```
+
+### flatten
+
+flatten()接收一个Array，无论这个Array里面嵌套了多少个Array，flatten()最后都把他们变成一个一维数组：
+
+```
+'use strict';
+
+_.flatten([1, [2], [3, [[4], [5]]]]); // [1, 2, 3, 4, 5]
+```
+
+### zip/unzip
+
+zip()把两个或多个数组的所有元素按索引对齐，然后索引合并成新数组。
+
+```
+'use strict';
+
+var names = ['Adam', 'Lisa', 'Bart'];
+var scores = [85, 92, 59];
+_.zip(names, scores);
+// [['Adam', 85], ['Lisa', 92], ['Bart', 59]]
+```
+
+unzip()反过来，进行解压缩：
+
+```
+'use strict';
+var namesAndScores = [['Adam', 85], ['Lisa', 92], ['Bart', 59]];
+_.unzip(namesAndScores);
+// [['Adam', 'Lisa', 'Bart'], [85, 92, 59]]
+```
+
+### object
+
+zip()把分数和名字对应成一个新的数组，Object的object()函数可以把他们对应成一个object:
+
+```
+'use strict';
+
+var names = ['Adam', 'Lisa', 'Bart'];
+var scores = [85, 92, 59];
+_.object(names, scores);
+// {Adam: 85, Lisa: 92, Bart: 59}
+```
+
+### range
+
+range()让你快速生成一个序列，不再需要用for循环实现了：
+
+```
+'use strict';
+
+// 从0开始小于10:
+_.range(10); // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+// 从1开始小于11：
+_.range(1, 11); // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+// 从0开始小于30，步长5:
+_.range(0, 30, 5); // [0, 5, 10, 15, 20, 25]
+
+// 从0开始大于-10，步长-1:
+_.range(0, -10, -1); // [0, -1, -2, -3, -4, -5, -6, -7, -8, -9]
+```
+
+## Functions
+
+### bind
+
+bind()可以帮我们把console对象直接绑定在log()的this指针上，以后调用log()就可以直接正常调用了:
+
+```
+'use strict';
+
+var log = _.bind(console.log, console);
+log('Hello, world!');
+// 输出Hello, world!
+```
+
+### partial
+
+partial()为一个函数创建偏函数。
+
+```
+'use strict';
+
+var cube = _.partial(Math.pow, _, 3);
+cube(3); // 27
+cube(5); // 125
+cube(10); // 1000
+```
+
+
+### memoize
+
+如果一个函数调用开销很大，我们可能希望把结果混存下来，以便后续调用时直接获得结果。用memoize()就可以自动缓存函数计算的结果。
+
+### once
+
+once()保证某个函数执行且仅执行一次。如果你有一个方法叫 register(),用户在页面上点两个按钮的任何一个都可以执行的话，就可以用once()保证函数仅调用一次，无论用户点击多少次：
+
+```
+var register = _.once(function () {
+    alert('Register ok!');
+});
+```
+
+### delay
+
+delay()可以让一个函数延迟执行，效果和setTimeout()是一样的：
+
+```
+'use strict';
+
+// 2秒后调用alert():
+_.delay(alert, 2000);
+```
+
+如果要延迟调用的函数有参数，把参数也传进去：
+
+```
+'use strict';
+
+var log = _.bind(console.log, console);
+_.delay(log, 2000, 'Hello,', 'world!');
+// 2秒后打印'Hello, world!':
+```
 
 
     
