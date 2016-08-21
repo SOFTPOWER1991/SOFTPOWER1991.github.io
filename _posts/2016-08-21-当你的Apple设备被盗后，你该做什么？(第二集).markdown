@@ -64,7 +64,24 @@ categories: 小心思
 可能你会说，密码只有我知道他们怎么可能会拿到我的密码呢？莫着急，切看下文：
 
 
-我的设备在丢失后的第12天，接到了第一条诈骗短信：
+我的设备在丢失后的第12天开始，我陆陆续续的接到了很多诈骗短信：
 
 <img src="{{ site.baseurl }}/assets/losg/lose_msg_1.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_2.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_3.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_4.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_5.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_6.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_7.jpg" title="Profile Picture" class="profile">
+
+当你点开上面的链接后会发现，一个跟iCloud很相似的页面其实，这是假的！
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_18.jpg" title="Profile Picture" class="profile">
+
 
