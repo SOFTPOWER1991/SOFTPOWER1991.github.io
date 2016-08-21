@@ -1,0 +1,78 @@
+---
+layout: post
+title:  "当你的Apple设备被盗后，你该做什么？（第二集）"
+date:   2016-08-21 9:30:59
+author: zhanggeng
+categories: 小心思
+---
+
+接上次的，当你的Apple设备丢失后，要按照上文的操作。
+
+其次，也是最重要的：
+
+1. 立即修改你的Apple ID密码；
+2. 去iCloud修改你的个人信息（include：出生年月日、安全提示问题、手机号码、添加救援邮箱、开启二次安全验证）但是，我强烈建议，如果你有Apple设备，在没有丢的情况下，就把这些操作做了，这些信息可以保护你尚未丢失的Apple设备。
+
+如果不法分子拿到你的AppleID的密码后，可以直接锁定你的其余Apple设备，such as: Mac 、iPad、iPod、iPhone，这是很危险的，因为他们可能会变成搬砖，你也用不了！
+
+可能你会说，密码只有我知道他们怎么可能会拿到我的密码呢？莫着急，切看下文：
+
+
+我的设备在丢失后的第12天开始，我陆陆续续的接到了很多诈骗短信：
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_1.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_2.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_3.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_4.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_5.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_6.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_7.jpg" title="Profile Picture" class="profile">
+
+当你点开上面的链接后会发现，一个跟iCloud很相似的页面其实，这是假的！
+
+<img src="{{ site.baseurl }}/assets/losg/lose_msg_8.jpg" title="Profile Picture" class="profile">
+
+你能区分出，那个是真的哪个是假的吗？ 没关系，后面我会告诉你！如果你在假的页面上输入了你的AppleID 和密码之后，那么你的密码就被别人拿到了，之后坏人可以进行如下操作：
+
+1. 解锁你丢失的Apple设备；
+2. 锁定你尚未丢失的Apple设备；
+3. 拿到你iCloud上同步的所有信息：联系人、邮件、日期、照片（如果有隐私照片的话，嘿嘿。。。。。）
+4. 修改的Apple ID的密码；
+
+
+上面是骗子给我发的短信，基本上也就是这些理由了。下面再瞅瞅iMessage上发的接口：
+
+
+<img src="{{ site.baseurl }}/assets/losg/lost_imsg_1.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lost_imsg_2.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lost_imsg_3.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lost_imsg_4.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lost_imsg_5.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lost_imsg_6.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lost_imsg_7.jpg" title="Profile Picture" class="profile">
+
+<img src="{{ site.baseurl }}/assets/losg/lost_imsg_8.jpg" title="Profile Picture" class="profile">
+
+到此，可以总结出，骗子大概能想到的理由是：
+
+1. 定位到在哪儿了；
+2. 正在强制刷机激活；
+3. 在申请更换新机服务；
+4. 照片流正在恢复到XXX的设备；
+5. 正在升级....;
+
+Email 的内容跟这些大致相同，因此我就不上图了！
+
+
