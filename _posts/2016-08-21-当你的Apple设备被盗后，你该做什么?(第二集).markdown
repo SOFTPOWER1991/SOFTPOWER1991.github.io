@@ -18,7 +18,9 @@ categories: 小心思
 可能你会说，密码只有我知道他们怎么可能会拿到我的密码呢？莫着急，切看下文：
 
 
-我的设备在丢失后的第12天开始，我陆陆续续的接到了很多诈骗短信：
+我的设备在丢失后的第12天开始，我陆陆续续的接到了各种各样的攻击：
+
+# 1. 短信诈骗
 
 <img src="{{ site.baseurl }}/assets/losg/lose_msg_1.jpg" title="Profile Picture" class="profile">
 
@@ -48,6 +50,8 @@ categories: 小心思
 
 上面是骗子给我发的短信，基本上也就是这些理由了。下面再瞅瞅iMessage上发的接口：
 
+#2. iMessage诈骗：
+
 
 <img src="{{ site.baseurl }}/assets/losg/lost_imsg_1.jpg" title="Profile Picture" class="profile">
 
@@ -73,6 +77,17 @@ categories: 小心思
 4. 照片流正在恢复到XXX的设备；
 5. 正在升级....;
 
+#3. Email 诈骗
+
 Email 的内容跟这些大致相同，因此我就不上图了！
+
+#4. 电话诈骗
+
+<img src="{{ site.baseurl }}/assets/losg/lose_dialog.jpg" title="Profile Picture" class="profile">
+
+
+
+
+
 
 
