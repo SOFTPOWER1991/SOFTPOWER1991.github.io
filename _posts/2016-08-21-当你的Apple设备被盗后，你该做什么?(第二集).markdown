@@ -20,7 +20,8 @@ categories: 小心思
 
 我的设备在丢失后的第12天开始，我陆陆续续的接到了各种各样的攻击：
 
-# 1. 短信诈骗
+
+# 短信诈骗
 
 <img src="{{ site.baseurl }}/assets/losg/lose_msg_1.jpg" title="Profile Picture" class="profile">
 
@@ -50,7 +51,7 @@ categories: 小心思
 
 上面是骗子给我发的短信，基本上也就是这些理由了。下面再瞅瞅iMessage上发的接口：
 
-#2. iMessage诈骗：
+# iMessage诈骗：
 
 
 <img src="{{ site.baseurl }}/assets/losg/lost_imsg_1.jpg" title="Profile Picture" class="profile">
@@ -77,17 +78,32 @@ categories: 小心思
 4. 照片流正在恢复到XXX的设备；
 5. 正在升级....;
 
-#3. Email 诈骗
+# Email诈骗
 
 Email 的内容跟这些大致相同，因此我就不上图了！
 
-#4. 电话诈骗
+# 电话诈骗
 
 <img src="{{ site.baseurl }}/assets/losg/lose_dialog.jpg" title="Profile Picture" class="profile">
 
+一共接到了两次电话`4006668800`
 
+第一次：是个男的打过来的，一口南方口音，拙劣的骗技一下就被我识破了；
+第二次是个女的：我没有识破她的骗技，但是想骗我没那么容易,她说到：
 
+```
+"我们是上海Apple客服总部的，接到北京派发过来的工单，有人拿着你的丢失的Apple设备在零售店申请新机更换服务，由于他不能提供购机发票，商品包装，因此我们暂时将该设备扣留，需要联系你核实你的个人信息之后，给你把设备寄回去或者你拿着身份证去零售店领取。"
+```
+然后，问我注册AppleID时填写的生日、安全提示问题的答案。
 
+***注意！注意！注意！***
 
+> 在更改Apple ID 密码的时候，需要验证这些信息，一旦拿到这些验证信息的答案，就可以修改掉你的密码；
+
+我当时一下就反应过来了，给她说：
+
+> 抱歉，又让你失望了，你拿到这些信息可以修改我的密码的，你再想个高明点的接口吧。
+
+恶狠狠的挂了丫的电话，当时感觉真爽，又没骗到我！
 
 
