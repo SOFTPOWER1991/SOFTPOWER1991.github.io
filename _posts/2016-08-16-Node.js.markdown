@@ -83,7 +83,7 @@ process.nextTick(function () {
 console.log('nextTick was set!');
 ```
 
-# 判断JS执行环境
+## 判断JS执行环境
 
 有很多JS代码既能在浏览器中执行，也能在Node环境执行，有些时候，程序本身需要判断自己到底是在什么环境下执行，常用的方式是根绝浏览器和Node环境提供的全局变量名称来判断：
 
@@ -94,6 +94,126 @@ if (typeof(window) === 'undefined') {
     console.log('browser');
 }
 ```
+
+## fs
+
+Node.js内置的fs模块就是文件系统模块，负责读写文件。它同时提供了异步和同步的方法。
+
+### 异步读取
+
+Node.js标准的回调函数：第一个参数代表错误信息，第二个参数代表结果。
+
+```
+if (err) {
+    // 出错了
+} else {
+    // 正常
+}
+```
+异步读取时，传入回调函数两个参数，
+
+正常读取时：
+> err: null；
+> data: 读取到的String.
+
+读取发生错误时：
+
+> err:参数代表一个错误对象；
+> data: 为undefined;
+
+### 同步读取文件
+
+同步读取的函数：多了一个sync后缀，并且不接受回调函数，函数直接返回结果。
+
+同步读取文件发生错误，则需要用try...catch捕获该错误：
+
+```
+try {
+    var data = fs.readFileSync('sample.txt', 'utf-8');
+    console.log(data);
+} catch (err) {
+    // 出错了
+}
+```
+
+### 写文件
+
+将数据写入文件是通过fs.writeFile()实现的：
+
+writeFile()的参数一次为文件名、数据和回调函数。
+
+```
+'use strict';
+
+var fs = require('fs');
+
+var data = 'Hello, Node.js';
+fs.writeFile('output.txt', data, function (err) {
+    if (err) {
+        console.log(err);
+    } else {
+        console.log('ok.');
+    }
+});
+```
+
+writeFile的同步方法，writeFileSync():
+
+```
+'use strict';
+
+var fs = require('fs');
+
+var data = 'Hello, Node.js';
+fs.writeFileSync('output.txt', data);
+```
+
+### stat
+
+fs.stat()——>获取文件大小、创建时间等信息，它返回一个Stat对象，包含文件或目录的详细信息：
+
+```
+'use strict';
+
+var fs = require('fs');
+
+fs.stat('/Users/zhanggeng/Documents/js_Project', function (err, stat) {
+    if (err) {
+        console.log(err);
+    } else {
+        // 是否是文件:
+        console.log('isFile: ' + stat.isFile());
+        // 是否是目录:
+        console.log('isDirectory: ' + stat.isDirectory());
+        if (stat.isFile()) {
+            // 文件大小:
+            console.log('size: ' + stat.size);
+            // 创建时间, Date对象:
+            console.log('birth time: ' + stat.birthtime);
+            // 修改时间, Date对象:
+            console.log('modified time: ' + stat.mtime);
+        }
+
+        if(stat.isDirectory){
+            console.log('size=====' + stat.size);
+
+            console.log('birthtime====' + stat.birthtime);
+
+
+            console.log('modifiedtime=====' + stat.mtime);
+        }
+    }
+});
+```
+
+### 异步还是同步
+
+到底在什么时候用异步方法还是同步方法呢？
+
+1. 绝大部分需要在服务器运行期反复执行业务逻辑的代码，必须用异步代码，否则，同步代码在执行时期，服务器将停止响应，因为JS只有一个执行线程。
+2. 服务器启动时如果需要读取配置文件，或者结束时需要写入到状态文件时，可以使用同步代码，因为这些代码只在启动和结束时执行一次，不影响服务器正常运行时的异步执行。
+
+
 
 
 
