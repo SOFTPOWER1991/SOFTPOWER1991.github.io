@@ -29,6 +29,63 @@ koa是Express的下一代基于Node.js的Web框架。Express是第一代流行�
 
 # 处理URL
 
+## koa-router
 
+为了处理URL，我们引入koa-router这个middleware，让它负责处理URL映射。
+
+```
+const Koa = require('koa');
+
+// 注意require('koa-router')返回的是函数:
+const router = require('koa-router')();
+
+const app = new Koa();
+
+// log request URL:
+app.use(async (ctx, next) => {
+    console.log(`Process ${ctx.request.method} ${ctx.request.url}...`);
+    await next();
+});
+
+// add url-route:
+router.get('/hello/:name', async (ctx, next) => {
+    var name = ctx.params.name;
+    ctx.response.body = `<h1>Hello, ${name}!</h1>`;
+});
+
+router.get('/', async (ctx, next) => {
+    ctx.response.body = '<h1>Index</h1>';
+});
+
+// add router middleware:
+app.use(router.routes());
+
+app.listen(3000);
+console.log('app started at port 3000...');
+```
+
+
+处理get请求：
+
+```
+router.get('/path', async fn)
+```
+
+处理post请求：
+
+```
+router.post('/path', async fn)
+```
+
+post请求处理URL时，通常会发送一个表单，或者JSON，作为request的body发送.但是无论Node.js还是koa提供的request对象，都不提供解析request的body的功能！
+
+需要借助middleware来解析原始request请求，然后，把解析后的参数，绑定到ctx.request.body中。
+
+```
+"koa-bodyparser": "3.2.0"
+```
+代码重构：
+
+所有处理URL的函数按功能组存放在controllers目录。
 
 
