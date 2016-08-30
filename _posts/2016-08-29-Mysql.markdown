@@ -1,0 +1,88 @@
+---
+layout: post
+title:  "MySql"
+date:   2016-08-29 08:45:59
+author: zhanggeng
+categories: JavaScript
+---
+
+在Mac上安装Mysql ，这是我找见的一篇不从的文章，对我很有帮助:
+
+[Mac OS X 下安装MySQL 5.7](http://jacob110.github.io/2015/10/13/mac-os-install-mysql5-7/)
+
+# 使用Sequelize
+
+Node.js程序如何访问MySQL数据库呢？
+
+> 通过网络发送SQL命令，然后，MySQL服务器执行后返回结果。
+
+访问MySQL 服务器的软件包称为：MySQL驱动程序。
+
+目前使用最广泛的MySQL Node.js驱动程序是开源的mysql,可以直接使用npm安装。
+
+# ORM ： Object-Relational Mapping
+
+把关系数据库的表结构映射到对象上，这个转换便是由ORM框架来完成——Sequelize。
+
+
+# 建立Model
+
+我们需要一个统一的模型，强迫所有Model都遵守同一个规范，这样不但实现简单，而且容易统一风格。
+
+首先定义一个文件夹models存放所有的Model，并且以Model命名，例如：Pet.js，User.js。。。
+
+建立Model的规范：
+
+1. 统一主键，名称必须是id，类型必须是STRING(50)；
+2. 主键可以自己指定，也可以由框架自动生成（如果为null或undefined）；
+3. 所有字段默认为NOT NULL，除非显式指定；
+4. 统一timestamp机制，每个Model必须有createdAt、updatedAt和version，分别记录创建时间、修改时间和版本号。其中，createdAt和updatedAt以BIGINT存储时间戳，最大的好处是无需处理时区，排序方便。version每次修改时自增。
+
+# 数据库配置
+
+* config-default.js : 存储默认的配置；
+* config-override.js : 存储特定的配置；
+* config-test.js : 存储用于测试的配置；
+
+# 工程结构
+
+model-sequelize/
+|
++- .vscode/
+|  |
+|  +- launch.json <-- VSCode 配置文件
+|
++- models/ <-- 存放所有Model
+|  |
+|  +- Pet.js <-- Pet
+|  |
+|  +- User.js <-- User
+|
++- config.js <-- 配置文件入口
+|
++- config-default.js <-- 默认配置文件
+|
++- config-test.js <-- 测试配置文件
+|
++- db.js <-- 如何定义Model
+|
++- model.js <-- 如何导入Model
+|
++- init-db.js <-- 初始化数据库
+|
++- app.js <-- 业务代码
+|
++- start.js <-- 启动入口js
+|
++- package.json <-- 项目描述文件
+|
++- node_modules/ <-- npm安装的所有依赖包
+
+
+
+
+
+
+
+
+
