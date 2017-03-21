@@ -1,0 +1,827 @@
+---
+layout: post
+title:  "Android多线程知识总结——源码分析"
+date:   2017-03-20 08:43:59
+author: zhanggeng
+categories: android
+---
+
+
+这篇文章主要讨论Android中多线程相关的内容，其中包括如下内容
+
+> 1. Java 多线程的基础知识
+> 2. 预备基础知识，包括但不限于：Callable、Future、RunnableFuture
+、FutureTask、Executor、ThreadPoolExecutor、Android中的消息机制
+> 3. AsyncTask的实现原理，主要是源码分析
+> 4. AsyncTask存在的问题以及使用时的注意事项
+> 5. HandlerThread的实现原理主要是源码分析
+> 6. IntentService的实现原理主要是源码分析
+
+下文将逐个展开描述：
+
+# 1. Java多线程的基础知识
+
+在之前我写过一系列的关于Java多线程的博客，掌握这些内容便有了多线程编程的相关基础知识，故而这里不错深入讨论，文章链接：
+
+[Java多线程总结](http://blog.csdn.net/watermusicyes/article/details/8801841)
+
+# 2. 预备基础知识
+
+这块介绍的预备基础知识，是分析AsyncTask源码的基础。不掌握这些内容对源码的分析将是举步维艰。
+
+## 2.1 Callable
+
+先看`Callable`的源码：
+
+```
+package java.util.concurrent;
+
+/**
+ * A task that returns a result and may throw an exception.
+ * Implementors define a single method with no arguments called
+ * {@code call}.
+ *
+ * <p>The {@code Callable} interface is similar to {@link
+ * java.lang.Runnable}, in that both are designed for classes whose
+ * instances are potentially executed by another thread.  A
+ * {@code Runnable}, however, does not return a result and cannot
+ * throw a checked exception.
+ *
+ * <p>The {@link Executors} class contains utility methods to
+ * convert from other common forms to {@code Callable} classes.
+ *
+ * @see Executor
+ * @since 1.5
+ * @author Doug Lea
+ * @param <V> the result type of method {@code call}
+ */
+@FunctionalInterface
+public interface Callable<V> {
+    /**
+     * Computes a result, or throws an exception if unable to do so.
+     *
+     * @return computed result
+     * @throws Exception if unable to compute a result
+     */
+    V call() throws Exception;
+}
+```
+
+从源码可以看到这个是一个接口，源码的注释翻译出来如下：
+
+返回结果并且可能抛出异常的任务。定义了没有参数的方法`call()`. `Callable`接口和`Runnable`接口非常相似，他们的实例都在其它线程中执行，但是`Runable`接口，不会有返回值也不会抛出异常。 `Executors`类有工具方法可以把其它形式的`Runnable`转换为`Callable`类。下面这些方法都是的：
+
+```
+    public static <T> Callable<T> callable(Runnable task, T result) { 
+        if (task == null) 
+            throw new NullPointerException(); 
+        return new RunnableAdapter<T>(task, result); 
+    } 
+
+
+    public static Callable<Object> callable(Runnable task) { 
+        if (task == null) 
+            throw new NullPointerException(); 
+        return new RunnableAdapter<Object>(task, null); 
+    } 
+
+
+``` 
+
+
+## 2.2 Future
+
+先看`Future`的源码，删掉了部分无关内容：
+
+```
+package java.util.concurrent;
+
+public interface Future<V> {
+	 //
+    boolean isCancelled();
+
+    boolean isDone();
+
+    V get() throws InterruptedException, ExecutionException;
+
+    V get(long timeout, TimeUnit unit)
+        throws InterruptedException, ExecutionException, TimeoutException;
+}
+
+```
+
+文档中注释翻译过来为：
+
+> `Future`代表了异步计算的结果。它提供了方法：用来检查计算是否完成；阻塞等待任务完成并获取计算的结果，计算的结果只能通过`get()`方法来获取，当计算完成的时候会返回值否则一直阻塞等待直到有结果返回。可以用`cancel`方法来取消一个异步任务。除此之外还提供了额外的方法来判断任务是否正常的执行完毕或者被取消掉了。如果你使用`Future`只是为了让任务可以被取消而不是为了想得到一个返回值，你可以给`Future<?>`具体声明然后返回一个`null`作为返回的结果。
+
+* cancel方法
+
+尝试着取消正在执行的任务。如果任务已经执行完毕、已经被取消、或者因为其它原因不能被取消，那么此次尝试就会失败。如果成功了，并且在调用cancel的时候这个任务还没有执行，那么这个任务将永远不会执行。如果任务已经启动了，那么可以根据他的参数 `mayInterruptIfRunning`参数来决定是否正在执行这个任务的线程可以尝试着被中断。
+在这个方法执行后，后面调用`isDone`将会永远返回`true`。 如果`cancel`方法返回`true`, 后面调用`inCancelled()`也将会永远返回`true`.
+
+* isCancelled
+
+如果在这个任务正常执行完毕之前被取消了，这个方法返回true。
+
+* isDone
+
+如果任务执行完毕返回true。执行完毕可以指：正常执行完毕、发生异常 ，或者被取消了——如果是这些情况中的任何一个，这个方法将会返回true.
+
+* get ()
+
+在执行完之前一直等待，直到获得返回结果
+
+* get (long timeout, TimeUnit unit)
+
+指定一个最长的等待时间，在这段时间内一直等待。然后，获得结果。
+
+## 2.3 RunnableFuture
+
+先看源码：
+
+```
+
+/**
+ * A {@link Future} that is {@link Runnable}. Successful execution of
+ * the {@code run} method causes completion of the {@code Future}
+ * and allows access to its results.
+ * @see FutureTask
+ * @see Executor
+ * @since 1.6
+ * @author Doug Lea
+ * @param <V> The result type returned by this Future's {@code get} method
+ */
+public interface RunnableFuture<V> extends Runnable, Future<V> {
+    /**
+     * Sets this Future to the result of its computation
+     * unless it has been cancelled.
+     */
+    void run();
+}
+```
+
+> *Notice:* 原来，接口与接口之间是继承的关系，并且可以多继承。在学Java基础的时候，只知道类与类之间是继承关系，并且只能单继承。今天算是学到了一点新东西。
+
+RunnableFuture： 一个可以在多线程中执行的Future。当run方法执行完毕后，可以通过Future来获取计算结果。
+
+## 2.4 FutureTask
+
+一个可以取消的异步计算。这个类提供了Future的最基本的实现，拥有如下方法：
+
+* 启动和取消计算
+* 查询计算是否完成
+* 获取计算结果，结果只能在计算完成后才能获得，如果计算还没有完成，get方法将会一直阻塞
+* 当计算完成后，这个计算将不能被重启或者取消（除非调用runAndRest()来唤醒）
+
+FutureTask可以用来包装Callable 或者 Runnable对象。因为FutureTask实现了Runnable接口，Future可以提交给Executor来执行。除了可以单独使用外，这个类还提供了一些protected的方法来方便你自定义Task。
+
+FutureTask的运行状态，初始值为NEW。运行状态只能在set、setException、和cancel方法里面转变为最终状态。在计算过程中，状态可能为如下值：
+
+```
+/**
+     * 可能的状态变化:
+     * NEW -> COMPLETING -> NORMAL
+     * NEW -> COMPLETING -> EXCEPTIONAL
+     * NEW -> CANCELLED
+     * NEW -> INTERRUPTING -> INTERRUPTED
+     */
+    private volatile int state;
+    private static final int NEW          = 0;
+    private static final int COMPLETING   = 1;
+    private static final int NORMAL       = 2;
+    private static final int EXCEPTIONAL  = 3;
+    private static final int CANCELLED    = 4;
+    private static final int INTERRUPTING = 5;
+    private static final int INTERRUPTED  = 6;
+
+```
+
+
+## 2.5 Executor
+
+执行提交过来的Runnable的对象。此接口提供了一种将任务提交、运行的机制分离的方法，包括线程使用，调度等细节。通常使用Executor而不是显式的创建线程。例如，不是为每一个任务集合调用这个方法 new Thread(new RunnableTask()).start()创建新的线程，而是这么来搞：
+
+```
+Executor executor = anExecutor();
+executor.execute(new RunnableTask1());
+executor.execute(new RunnableTask2());
+```
+
+但是，Executor接口并不严格要求执行是异步的。 在最简单的情况下，Executor可以立即在调用者的线程中运行提交的任务：
+
+```
+class DirectExecutor implements Executor {
+		public void execute(Runnable r) {
+			r.run();
+		}
+}
+```
+
+更典型地是，任务在调用者的线程之外的一些线程中执行。 下面的Executor为每个任务产生一个新的线程。
+
+```
+class ThreadPerTaskExecutor implements Executor {
+	public void execute(Runnable r) {
+		new Thread(r).start();
+	}
+}
+```
+
+许多Executor的实现对任务如何和何时调度施加了某种限制。 `Executor`将提交的任务序列化到第二个执行器，也就是复合执行器。
+
+```
+//一个串行的线程池，一个进程中所有的AsyncTask全部在这个串行的线程池中排队等待执行。
+private static class SerialExecutor implements Executor {
+        final ArrayDeque<Runnable> mTasks = new ArrayDeque<Runnable>();
+        Runnable mActive;
+
+        public synchronized void execute(final Runnable r) {
+            mTasks.offer(new Runnable() {
+                public void run() {
+                    try {
+                        r.run();
+                    } finally {
+                        scheduleNext();
+                    }
+                }
+            });
+            if (mActive == null) {
+                scheduleNext();
+            }
+        }
+
+        protected synchronized void scheduleNext() {
+            if ((mActive = mTasks.poll()) != null) {
+                THREAD_POOL_EXECUTOR.execute(mActive);
+            }
+        }
+    }
+```
+
+Executor是一个接口，真正的线程池的实现为ThreadPoolExecutor。ThreadPoolExecutor提供了一系列的参数来配置线程池。Android中的线程池都是直接或者间接通过配置TheadPoolExecutor来实现的。
+
+## 2.6 ThreadPoolExecutor
+
+ThreadPoolExecutor是Executorservice的实现，它使用线程池中的任意一个线程来执行提交的任务，这些线程通常是用Executors的工厂方法配置的。
+
+线程池解决了两个不同的问题：
+
+* 他们可以在执行大量异步任务的时候提高性能表现，因为减少了每个任务的调度开销；
+* 它们提供了限制和管理在执行任务集合时消耗的资源的手段。
+* 除此之外，每个ThreadPoolExecutor还维护一些基本统计信息，例如完成任务的数量。
+
+为了在广泛的上下文中使用，该类提供了许多可调参数和可扩展钩子。 但是，程序员可以使用更方便的Executors工厂方法，例如：
+
+* newCachedThreadPool——线程池中线程数量不受限制，有自动线程回收
+* newFixedThreadPool（int）——固定大小线程池
+* newSingleThreadExecutor（）——单后台线程
+* newScheduledThreadPool——核心线程数是固定的，非核心线程数是非固定的。当非核心线程空闲时会被立刻回收。
+
+ 这些线程池已经满足了最常见的使用场景。 否则，在手动配置和调整此类时，请使用以下指南：
+ 
+1. 核心和最大线程池数量
+	
+	ThreadPoolExecutor将根据由corePoolSize（请参阅getCorePoolSize（））和maximumPoolSize（请参阅getMaximumPoolSize（））设置的边界自动调整池大小（请参阅getPoolSize（））。
+	
+	* 当在方法execute（Runnable）中提交新任务，并且少于corePoolSize线程正在运行时，即使其他工作线程空闲，也会创建一个新的线程来处理该请求。
+	* 如果有多于corePoolSize但小于maximumPoolSize线程运行，则只有队列已满时才会创建一个新线程。 
+	* 通过设置corePoolSize和maximumPoolSize相同，你可以创建一个固定大小的线程池。 
+	* 通过将maximumPoolSize设置为无界值（如Integer.MAX_VALUE），可以让线程池容纳任意数量的并发任务。 
+	* 最典型地，核心和最大池大小仅在构建时设置，但是它们也可以使用setCorePoolSize（int）和setMaximumPoolSize（int）动态地改变。
+
+2. 按需构建线程池
+
+	默认情况下，尽管只有当新任务到达时核心线程才会创建和启动，但这可以使用方法prestartCoreThread（）或prestartAllCoreThreads（）动态重写。 如果你是用非空队列构造池，你可能想要预先启动线程。
+	
+3. 创建新线程
+
+	使用ThreadFactory创建新线程。 如果没有另外指定，将会使用defaultThreadFactory（），它创建线程到所有在相同的线程组，具有相同的NORM_PRIORITY优先级和非守护进程状态。 通过提供一个不同的ThreadFactory，你可以改变线程的名称，线程组，优先级，守护进程状态等。如果ThreadFactory无法创建一个线程，将会返回一个null从newThread，执行器将继续，但可能无法 执行任何任务。 线程应该拥有“modifyThread”RuntimePermission。 如果工作线程或使用池的其他线程不具有该许可，则服务可能被降级：配置改变可能不能及时地生效，并且关闭池可以保持在可能终止但未完成的状态。
+	
+4. 保活时间
+
+	如果线程池中当前具有多于corePoolSize个线程，如果它们已经空闲超过keepAliveTime（请参阅getKeepAliveTime（TimeUnit））则超出线程将被终止。 这提供了当池未被使用时减少资源消耗的手段。 如果池稍后变得更活跃，则将构造新线程。 此参数也可以使用setKeepAliveTime（long，TimeUnit）方法动态更改。 使用Long.MAX_VALUE的值NANOSECONDS有效地禁用空闲线程在关闭之前终止。 默认情况下，keep-alive策略仅在有多余corePoolSize个线程时应用，但是方法allowCoreThreadTimeOut（boolean）也可以用于将此超时策略应用于核心线程，只要keepAliveTime值不为零 。
+	
+5. 排队策略
+
+	任何BlockingQueue可以用于传输和保存提交的任务。 此队列的使用与池大小调整交互
+
+	* 如果少于corePoolSize线程正在运行，则Executor总是优选添加新线程而不是排队。
+	* 如果corePoolSize或更多线程正在运行，则Executor总是优先对请求进行排队，而不是添加新线程。
+	* 如果任务队列已满，并且线程数量未达到线程池规定的最大值，那么会立刻启动一个非核心线程来执行任务。
+	* 如果请求队列已满不能再插入队列并且线程池中的数量已经达到了最大值，这种情况下，任务将被拒绝。
+
+	任务排队有三种一般策略：
+	
+	* `直接切换`。工作队列的一个好的默认选择是SynchronousQueue，它把任务交给线程，而不用另外持有它们。 这里，如果没有线程立即可用来运行它，则尝试对任务排队将失败，因此将构造新线程。 此策略在处理可能具有内部依赖性的请求集时避免锁定。 直接切换通常需要无界的maximumPoolSizes以避免拒绝新提交的任务。 这反过来承认无限线程增长的可能性，当命令继续平均快于它们可以被处理时到达。
+	
+	* `无界队列`。 使用无界队列（例如没有预定义容量的LinkedBlockingQueue）将导致新任务在所有corePoolSize线程都忙时在队列中等待。 因此，将不会创建超过corePoolSize线程。 （并且maximumPoolSize的值因此没有任何效果。）当每个任务完全独立于其他任务时，这可能是适当的，因此任务不能影响彼此的执行; 例如，在网页服务器中。 虽然这种排队方式在平滑请求的瞬时突发中很有用，但是当命令继续以比它们可以被处理的平均速度更快的速度到达时，它承认无限工作队列增长的可能性。
+
+	
+	* `有界队列`。 有限队列（例如，ArrayBlockingQueue）有助于防止资源耗尽当使用有限的maximumPoolSizes时，但可能更难以调整和控制。 队列大小和最大池大小可能相互折衷：使用大队列和小池最小化CPU使用率，操作系统资源和上下文切换开销，但可能导致人为低吞吐量。 如果任务经常阻塞（例如，如果它们是I / O绑定的），则系统可能能够为多个线程调度时间，而不是允许。 使用小队列通常需要较大的池大小，这保持CPU繁忙，但可能遇到不可接受的调度开销，这也降低了吞吐量。
+
+6. 拒绝任务
+
+	当执行程序已关闭时，以及当执行程序对最大线程和工作队列容量使用有限边界时，方法execute（Runnable）中提交的新任务将被拒绝，并且已饱和。 在任一种情况下，execute方法调用它的RejectedExecutionHandler的rejectedExecution（Runnable，ThreadPoolExecutor）方法。 提供四个预定义的处理程序策略
+	
+	* 在默认的ThreadPoolExecutor.AbortPolicy中，处理程序在拒绝时抛出一个运行时RejectedExecutionException。
+	* 在ThreadPoolExecutor.CallerRunsPolicy中，调用execute本身的线程运行任务。 这提供了一种简单的反馈控制机制，其将降低提交新任务的速率。
+	* 在ThreadPoolExecutor.DiscardPolicy中，不能执行的任务被简单地删除。
+	* 在ThreadPoolExecutor.DiscardOldestPolicy中，如果执行器未关闭，则工作队列头部的任务将被删除，然后重试执行（可能再次失败，导致重复执行）。
+
+	可以定义和使用其他类型的RejectedExecutionHandler类。 这样做需要一些谨慎，特别是当策略设计为仅在特定容量或排队策略下工作时。
+	
+	> Notice: 我知道了，为什么会在执行任务队列已满，并且达到了最大线程数目的时候，会抛出RejectedExecutionException了，因为ThreadPoolExecutor使用的是：AbortPolicy。RejectedExecutionHandler 是一个接口，她的四个实现类位于ThreadPoolExecutor中
+
+7. 钩子方法
+
+	此类提供在每个任务执行之前和之后调用的受保护的可覆盖beforeExecute（Thread，Runnable）和afterExecute（Runnable，Throwable）方法。 这些可以用于操纵执行环境; 例如，重新初始化ThreadLocals，收集统计信息或添加日志条目。 此外，方法terminate（）可以被覆盖以执行任何需要在执行器完全终止时执行的特殊处理。
+
+	如果hook，callback或BlockingQueue方法抛出异常，内部工作线程可能会失败，突然终止，并可能被替换。
+
+8. 队列维护
+
+	方法getQueue（）允许访问工作队列，以便进行监视和调试。 强烈建议不要将此方法用于任何其他目的。 当大量排队任务被取消时，可使用两种提供的方法remove（Runnable）和purge（）来帮助进行存储回收。
+	
+9. 最终化
+
+	在程序中不再引用并且没有剩余线程的池将被自动关闭。 如果您想确保即使用户忘记调用shutdown（），也可以回收未引用的池，那么您必须通过使用零核线程的下限设置适当的保持活动时间来安排未使用的线程最终死亡，和/或 设置allowCoreThreadTimeOut（boolean）。
+
+## 2.7 Android中的消息机制
+
+Android中的消息机制，在我的另一篇文章中进行详尽的描述：
+
+[Android消息机制源码解析](https://github.com/SOFTPOWER1991/note/blob/master/SourceCodeAN/Android%E6%B6%88%E6%81%AF%E6%9C%BA%E5%88%B6%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90.md)
+
+# 3. AsyncTask的实现原理——源码分析
+
+AsyncTask的分析我们要搞明白的问题：
+
+1. AsyncTask的几个回调方法doInBackgroud、onPreExecute、onPostExecute,onProgressUpdate方法都是在哪儿执行的
+2. 我是在UI线程启动的AsyncTask，那么任务是怎么被切换到子线程的。
+3. 子线程中任务运行完毕后，又是怎么把执行结果返回到UI线程的。
+
+跟着这个几个问题的指引，在上面预备知识的加持下，我揭开了AsyncTask的神秘面纱。
+
+
+我们在UI线程启动AsyncTask的时候一般会这样写:
+
+```
+new DownloadFileTask().execute(xxx,xxx,xxx)。
+```
+先从构造方法说起，看源码：
+
+```
+public AsyncTask() {
+			// 1. WorkerRunnable 实现了Callable接口
+        mWorker = new WorkerRunnable<Params, Result>() {
+            public Result call() throws Exception {
+            	//表示当前任务已经被调用过了
+                mTaskInvoked.set(true);
+                Result result = null;
+                try {
+                    Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                    // 找到了doInBackground的执行方法，在call中并且有返回值Result
+                    result = doInBackground(mParams);
+                    Binder.flushPendingCommands();
+                } catch (Throwable tr) {
+                    mCancelled.set(true);
+                    throw tr;
+                } finally {
+                		//执行完成后，进行结果的post
+                    postResult(result);
+                }
+                return result;
+            }
+        };
+
+        mFuture = new FutureTask<Result>(mWorker) {
+            @Override
+            protected void done() {
+                try {
+                    postResultIfNotInvoked(get());
+                } catch (InterruptedException e) {
+                    android.util.Log.w(LOG_TAG, e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException("An error occurred while executing doInBackground()",
+                            e.getCause());
+                } catch (CancellationException e) {
+                    postResultIfNotInvoked(null);
+                }
+            }
+        };
+    }
+```
+
+在构造方法中WorkerRunnable实现了Callable接口，该接口中的call方法在子线程中执行完毕后会有结果返回。从源码中可以看到在call方法中，有如下代码
+
+```
+    result = doInBackground(mParams);
+```
+
+doInBackground找到了，确实是在子线程中执行的并且返回了执行的结果Result。
+
+接下来走到了postResult方法中，postResult方法的代码如下：
+
+```
+private Result postResult(Result result) {
+        @SuppressWarnings("unchecked")
+        Message message = getHandler().obtainMessage(MESSAGE_POST_RESULT,
+                new AsyncTaskResult<Result>(this, result));
+        message.sendToTarget();
+        return result;
+    }
+```
+
+我们可以看到在这里拿到了一个Handler，然后发出去了一个Message。看看Handler的代码:
+
+```
+private static Handler getHandler() {
+        synchronized (AsyncTask.class) {
+            if (sHandler == null) {
+                sHandler = new InternalHandler();
+            }
+            return sHandler;
+        }
+    }
+```
+
+原来子线程中的消息是发送到了一个内部的Handler中，最后通过Handler将子线程中运行的结果投递给了主线程，代码如下：
+
+```
+private static class InternalHandler extends Handler {
+        public InternalHandler() {
+            super(Looper.getMainLooper());
+        }
+
+        @SuppressWarnings({"unchecked", "RawUseOfParameterizedType"})
+        @Override
+        public void handleMessage(Message msg) {
+            AsyncTaskResult<?> result = (AsyncTaskResult<?>) msg.obj;
+            switch (msg.what) {
+                case MESSAGE_POST_RESULT:
+                    // 运行完成，通知主线程
+                    result.mTask.finish(result.mData[0]);
+                    break;
+                case MESSAGE_POST_PROGRESS:
+                		//在子线程中获取任务执行进度
+                    result.mTask.onProgressUpdate(result.mData);
+                    break;
+            }
+        }
+    }
+```
+
+在任务完成的情况下通知主线程，分两种情况：任务被取消 和 任务真正的完成。这个时候就找到了onPostExecute 和 onPostExecute的执行位置，代码如下：
+
+```
+private void finish(Result result) {
+        if (isCancelled()) {
+            onCancelled(result);
+        } else {
+        		//找到了onPostExecute
+            onPostExecute(result);
+        }
+        mStatus = Status.FINISHED;
+    }
+```
+
+在子线程中获取任务执行进度，然后通过Handler将进度投递到主线程，在主线程更新消息进度，代码如下：
+
+```
+@WorkerThread
+    protected final void publishProgress(Progress... values) {
+        if (!isCancelled()) {
+            getHandler().obtainMessage(MESSAGE_POST_PROGRESS,
+                    new AsyncTaskResult<Progress>(this, values)).sendToTarget();
+        }
+    }
+```
+
+至此，找到了doInBackgroud、onProgressUpdate、onPostExecute、onCancelled方法执行的位置，但是onPreExecute在哪儿执行呢？别忘了，我们这个异步任务还没执行呢，看看execute方法吧，在execute方法中调用了executeOnExecutor方法：
+
+```
+   @MainThread
+    public final AsyncTask<Params, Progress, Result> execute(Params... params) {
+        return executeOnExecutor(sDefaultExecutor, params);
+    }
+```
+executeOnExecutor方法的实现如下：
+
+```
+    @MainThread
+    public final AsyncTask<Params, Progress, Result> executeOnExecutor(Executor exec,
+            Params... params) {
+        if (mStatus != Status.PENDING) {
+            switch (mStatus) {
+                case RUNNING:
+                    throw new IllegalStateException("Cannot execute task:"
+                            + " the task is already running.");
+                case FINISHED:
+                    throw new IllegalStateException("Cannot execute task:"
+                            + " the task has already been executed "
+                            + "(a task can be executed only once)");
+            }
+        }
+
+        mStatus = Status.RUNNING;
+			
+			//最先执行.
+        onPreExecute();
+
+        mWorker.mParams = params;
+        exec.execute(mFuture);
+
+        return this;
+    }
+```
+
+哈哈，原来在我们的异步任务跑起来后，onPreExecute方法最先执行。
+
+至此，刚开始我们提出的三个问题都找到了答案，总结如下：
+
+1. onPreExecute在异步任务启动的时候最先执行；doInBackgroud在子线程中的call方法中执行；onPostExecute和onCancelled在InternalHander中的handleMessage方法中执行；onProgressUpdate在doInBackgroud中执行，这个需要我们手动调用。
+2. 我们在主线程启动的异步任务，通过线程池将任务切换到了子线程中执行。
+3. 子线程执行完毕后，通过消息机制讲结果返回到主线程。
+
+其中涉及到一些详细的技术点，在上面的第二部分中已经做了描述，所以第三部分没有赘述！主要是围绕了三大线索来进行源码跟踪。
+
+
+# 4. AsyncTask存在的问题以及使用时的注意事项
+
+至于AsyncTask存在的问题，我们先看如下代码：
+
+```
+private static final int CORE_POOL_SIZE = Math.max(2, Math.min(CPU_COUNT - 1, 4));
+private static final int MAXIMUM_POOL_SIZE = CPU_COUNT * 2 + 1;
+private static final int KEEP_ALIVE_SECONDS = 30;
+
+......
+
+private static final BlockingQueue<Runnable> sPoolWorkQueue =
+            new LinkedBlockingQueue<Runnable>(128);
+```
+
+上面的代码告诉我们核心线程数的大小和最大线程池的容量大小，以及队列的容量为128。根据第二部分的描述可以知道，当我们要执行的队列大于128个，并且线程池中的线程数量已经达到了最大值，就会抛出一个异常——rejectedExecution。因此，在使用AsyncTask时候，我们不能执行过多的异步任务。
+
+而对于AsyncTask的使用问题是在我们的页面销毁的时候忘记cancel所造成的内存泄露。因为异步任务没有执行结束的时候，会持有当前上下文的引用。所以在页面销毁的时候，一定得调用cancel方法。
+
+至此，我们知道了：
+
+1. AsyncTask所存在的问题，不能执行大批量的异步任务；如果要做的话，需要自定义线程池。
+2. AsyncTask忘记cancel可能会引起内存泄露。
+
+# 5. HandlerThread的实现原理主要是源码分析
+
+HandlerThread类用于启动一个Looper的新线程。 然后可以使用looper来创建Handler类。 注意，start（）仍然必须被调用。
+
+```
+
+
+package android.os;
+
+/**
+ *HandlerThread类用于启动一个Looper的新线程。 *然后可以使用looper来创建Handler类。 注意，start（）仍然必须被调用。
+ */
+public class HandlerThread extends Thread {
+    int mPriority;
+    int mTid = -1;
+    Looper mLooper;
+
+    //创建有默认优先级的线程
+    public HandlerThread(String name) {
+        super(name);
+        //线程的优先级
+        mPriority = Process.THREAD_PRIORITY_DEFAULT;
+    }
+    
+    
+    //创建一个指定优先级的线程
+    public HandlerThread(String name, int priority) {
+        super(name);
+        mPriority = priority;
+    }
+    
+   
+    // 如果需要在Looper对象开始loop之前需要做一些事儿的话，可以覆这个方法
+    protected void onLooperPrepared() {
+    }
+
+    @Override
+    public void run() {
+    	//线程id
+        mTid = Process.myTid();
+        //为当前线程设置一个Looper
+        Looper.prepare();
+        synchronized (this) {
+            mLooper = Looper.myLooper();
+            notifyAll();
+        }
+        Process.setThreadPriority(mPriority);
+        onLooperPrepared();
+        //开始轮询
+        Looper.loop();
+        mTid = -1;
+    }
+    
+    /**
+     * This method returns the Looper associated with this thread. If this thread not been started
+     * or for any reason is isAlive() returns false, this method will return null. If this thread 
+     * has been started, this method will block until the looper has been initialized.  
+     * @return The looper.
+     */
+    //这个方法返回一个和当前线程绑定的Looper。如果这个线程还没有启动或者其他的原因isAlive()方法返回false，这个方法将会返回null。如果这个线程已经被启动了，这个方法将会阻塞知道looper初始化好。
+    public Looper getLooper() {
+        if (!isAlive()) {
+            return null;
+        }
+        
+        // If the thread has been started, wait until the looper has been created.
+        synchronized (this) {
+            while (isAlive() && mLooper == null) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                }
+            }
+        }
+        return mLooper;
+    }
+
+    /**
+     * 退出处理线程的looper。
+     * 将会导致处理线程消息的looper终止，并且不再处理消息队列中的消息。
+     * 
+     *  任何在Looper退出后发布到消息队列中的尝试都会失败。例如，sendMessage（Message）方法将返回false。
+     * 
+     * 使用这个方法可能不是很安全，因为在looper终止前，消息队列中的消息可能还没有被处理。所以使用quitSafely来确保消息队列中的消息都被处理完了。
+     *
+     * @return  如果Looper已经被要求退出了返回true 或者 如果线程还没开始执行返回false
+     *
+     * @see #quitSafely
+     */
+    public boolean quit() {
+        Looper looper = getLooper();
+        if (looper != null) {
+            looper.quit();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 安全的退出looper。在Looper退出之前处理完消息队列中的所有消息
+     * 任何在Looper被要求退出后将消息发布到队列的尝试都将失败。 例如，sendMessage（Message）方法将返回false。
+     * 
+     * </p>
+     *
+     * @return 如果Looper已经被要求退出了返回true 或者 如果线程还没开始执行返回false
+     */
+    public boolean quitSafely() {
+        Looper looper = getLooper();
+        if (looper != null) {
+            looper.quitSafely();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 返回当前线程的标识符。参见：Process.myTid().
+     */
+    public int getThreadId() {
+        return mTid;
+    }
+}
+
+```
+
+HandlerThread 为我们提供了一个带有Looper的线程。那么问题来了:
+
+Thread、Handler、HandlerThread他们三者之间的区别是什么呢？
+
+* Thread 还是Java中Thread，Android没有对这个Tread类进行任何封装。
+* HandlerThread 是Android中对Thread进行的封装，提供了一个Looper。
+* Handler 是Android消息机制中的一员，它可以通过Looper对象进行实例化并运行于另外的线程中。
+
+总的来说，Android提供了让Handler运行于其它线程的线程实现，那就是HandlerThread。HandlerThread对象start后可以获得其Looper对象，并且使用这个Looper对象实例Handler。
+
+# 6. IntentService的实现原理主要是源码分析
+
+IntentService是 Service 的子类，它使用工作线程逐一处理所有启动请求。如果您不要求服务同时处理多个请求，这是最好的选择。 您只需实现 onHandleIntent() 方法即可，该方法会接收每个启动请求的 Intent，使您能够执行后台工作。
+
+说白了，就是IntentService为了我们提供了一个多线程的实现，我们只需要把任务交给他，他会开启一个线程去执行。
+
+首先来看IntentService的使用，在Activity或者Fragment我们启动一个IntentService的方法
+
+```
+Intent intent = new Intent(this , MyIntentService.class);
+startService(intent);
+```
+
+下面看IntentService的源码分析：
+
+先看构造方法：
+
+```
+ @Override
+    public IntentService(String name) {
+        super();
+        mName = name;
+    }
+```
+
+传递过来的参数，用来为工作线程命名，仅仅为了debug方便。
+
+我们知道，在调用了startService方法后，Service的生命周期方法是怎么执行的呢？
+
+onCreate——>onStartCommand。
+
+我们就按照这个线索往下跟踪：
+
+## 首先，看Service的生命周期方法onCreate:
+
+```
+@Override
+    public void onCreate() {
+
+        super.onCreate();
+        HandlerThread thread = new HandlerThread("IntentService[" + mName + "]");
+        thread.start();
+
+        mServiceLooper = thread.getLooper();
+        mServiceHandler = new ServiceHandler(mServiceLooper);
+    }
+```
+
+在onCreate中做了两件事儿：
+
+1. 创建并启动一个HandlerThread，在第5部分讲解了HandlerThread是一个带有Looper的线程。
+2. 拿到HandlerThread的looper，创建一个ServiceHandler。
+
+## 接着来看onStartCommand方法：
+
+```
+ @Override
+    public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
+        onStart(intent, startId);
+        return mRedelivery ? START_REDELIVER_INTENT : START_NOT_STICKY;
+    }
+```
+
+原来在onStartCommand方法中调用了onStart方法，那么去onStart方法看个究竟吧：
+
+```
+@Override
+    public void onStart(@Nullable Intent intent, int startId) {
+        Message msg = mServiceHandler.obtainMessage();
+        msg.arg1 = startId;
+        msg.obj = intent;
+        mServiceHandler.sendMessage(msg);
+    }
+```
+
+哈哈，原来又是消息机制。Handler会把Intent发送的消息队列中。然后等待着Looper来轮询这些Intent。
+
+那还用说，当然是去找mServiceHandler的实现了，代码如下：
+
+```
+    private final class ServiceHandler extends Handler {
+        public ServiceHandler(Looper looper) {
+            super(looper);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            onHandleIntent((Intent)msg.obj);
+            stopSelf(msg.arg1);
+        }
+    }
+```
+
+从消息队列中将Message中的Intent取出来下发到onHandleIntent来处理，然后来结束自己。
+
+终于，了然了！感觉，巨清晰！人的大脑是用来思考和想东西的，而不是用来记忆东西的。通常我也会发现，我觉着这个知识点很简单，记住就行了！事实是过不了多久，我会完全忘记，因此写出来，记录自己的信息势在必行！
+
+总的来说，IntentService:
+
+* 创建默认的工作线程，用于在应用的主线程外执行传递给 onStartCommand() 的所有 Intent。
+* 创建工作队列，用于将 Intent 逐一传递给 onHandleIntent() 实现，这样您就永远不必担心多线程问题。
+* 在处理完所有启动请求后停止服务，因此您永远不必调用 stopSelf()。
+* 提供 onBind() 的默认实现（返回 null）。
+* 提供 onStartCommand() 的默认实现，可将 Intent 依次发送到工作队列和 onHandleIntent() 实现。
+
+
+这就是我这两天忙碌的成果了，总结下吧：
+
+1. 首先我搞明白了分析AsyncTask源码必备的一些基础知识Callable、Future、FutureTask、RunnableFuture、ThreadPoolExecutor
+2. 我分析了AsyncTask的源码明白了三个问题，他们分别是：
+	* doInBackgroud、onPreExecute、onPostExecute,onProgressUpdate方法都是在哪儿执行的
+	* 我是在UI线程启动的AsyncTask，那么任务是怎么被切换到子线程的。
+	* 子线程中任务运行完毕后，又是怎么把执行结果返回到UI线程的。
+3. 我知道了因为ThreadPoolExecutor的队列限制带来的AsyncTask使用时需要注意的问题：不能执行大批量的任务，比如3000个。
+4. 我也知道了AsyncTask使用时，在页面销毁后需要调用cancel方法，防止内存泄露
+5. 我也知道HandlerThread的实现原理
+6. 我也知道了IntentService的实现原理。
+
+一个字儿，了然！
+
