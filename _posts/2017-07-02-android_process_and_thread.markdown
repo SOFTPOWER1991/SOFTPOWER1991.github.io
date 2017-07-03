@@ -179,8 +179,8 @@ Android 利用远程过程调用 (RPC) 提供了一种进程间通信 (IPC) 机�
 参考文档：
 
 1.[Google官方文档：进程和线程](https://developer.android.com/guide/components/processes-and-threads.html?hl=zh-cn#IPC)
-2.[Android开发艺术探索第11章]
-3.[Android开发艺术探索第2章]
+2.[Android开发艺术探索第11章]()
+3.[Android开发艺术探索第2章]()
 
 
 
